@@ -1,13 +1,22 @@
-import os
-os.environ['FLASK_ENV'] = "development" #FLASK_ENV=development
+_DEBUG = True
 
 from flask import Flask
-
 app = Flask(__name__)
 
-@app.route("/")
-def hello_world():
-    return "<p>Hello, World!</p>"
+from flask_restx import Resource, Api
+api = Api(app)
+
+todos = {}
+
+@api.route('/<string:todo_id>')
+class TodoSimple(Resource):
+    def get(self, todo_id):
+        return {todo_id: todos[todo_id]}
+
+    def put(self, todo_id):
+        from flask import request
+        todos[todo_id] = request.form['data']
+        return {todo_id: todos[todo_id]}
 
 if __name__ == '__main__':
-    app.run()  # run our Flask app
+    app.run(debug=_DEBUG)
