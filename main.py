@@ -17,6 +17,9 @@ class Database:
     def get_passwords(self):
         return self._db["_passwords"]
 
+    def append(row):
+        pass
+
     def __repr__(self):
         res = {}
         #avoid exposing internal database keys (that start with _)
@@ -69,7 +72,8 @@ class Main(Resource):
         check_for_access( request.form, db.get_passwords() )
         check_for_event_format(request.form)
         
-        db.append( request.form['data'] )
+        from flask import escape
+        db.append( escape( request.form['data'] ) )
 
         return db.__repr__()
 
