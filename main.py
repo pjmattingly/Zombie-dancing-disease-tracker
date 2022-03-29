@@ -3,20 +3,22 @@ _DEBUG = True
 from flask import Flask
 app = Flask(__name__)
 
-from flask_restx import Resource, Api
+from flask_restx import Api
 api = Api(app)
 
-todos = {}
+db = []
 
-@api.route('/<string:todo_id>')
-class TodoSimple(Resource):
-    def get(self, todo_id):
-        return {todo_id: todos[todo_id]}
+from flask_restx import Resource
 
-    def put(self, todo_id):
+@api.route('/log')
+class Main(Resource):
+    def post(self):
         from flask import request
-        todos[todo_id] = request.form['data']
-        return {todo_id: todos[todo_id]}
+        db.append( request.form['data'] )
+        return db
+
+    def get(self):
+        return db
 
 if __name__ == '__main__':
     app.run(debug=_DEBUG)
