@@ -3,7 +3,7 @@ _DEBUG = True
 class Database:
     def __init__(self, path=None):
         from pathlib import Path
-        _path = Path('./db.json')
+        _path = Path('./')
 
         if not path is None:
             _path = Path(path)
@@ -14,22 +14,24 @@ class Database:
         if _path.is_dir():
             _path = _path / "db.json"
 
+        #adding support for timestamps to TinyDB storage
+        from tinydb.storages import JSONStorage
+        from tinydb_serialization import SerializationMiddleware
+        from tinydb_serialization.serializers import DateTimeSerializer
+        serialization = SerializationMiddleware(JSONStorage)
+        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
+
         from tinydb import TinyDB
-        self._db = TinyDB(_path)
+        self._db = TinyDB(_path, storage=serialization)
         self._password_table = self._db.table('_passwords')
         self._data_table = self._db.table('data')
 
         self._password_id = 0
 
-        #self._db["_passwords"] = []
-        #self._db["data"] = []
-
     def add_password(self, password):
         _p = self._create_password(password)
         self._password_table.insert({self._password_id: _p})
         self._password_id += 1
-
-        #self._db["_passwords"].append( self._create_password(password) )
 
     def _create_password(self, password):
         #hash a plain-text password for storage
@@ -40,7 +42,6 @@ class Database:
     def get_passwords(self): return self._get_passwords()
 
     def _get_passwords(self):
-        #return self._db["_passwords"]
         return [list(row.values())[0] for row in self._password_table.all()]
 
     def check_password(self, password):
@@ -57,8 +58,15 @@ class Database:
         return False
 
     def append(self, row):
-        #self._db["data"].append( self._escape_input(row) )
-        self._data_table.insert( self._escape_input(row) )
+        new_row = self._escape_input(row)
+
+        from datetime import datetime
+        now = datetime.now(tz=None)
+
+        new_row["_timestamp"] = now
+
+        self._data_table.insert( new_row )
+
         return self.__repr__()
 
     def _escape_input(self, row):
@@ -71,7 +79,6 @@ class Database:
         return res
 
     def __repr__(self):
-        #return list(self._db["data"])
         return list(self._data_table.all())
 
     def __str__(self):
@@ -85,22 +92,11 @@ api = Api(app)
 
 db = Database()
 
-print(db)
-db.add_password("test")
-#print(db._password_id)
-#print(db._password_table.all())
-print( db.get_passwords() )
-print( db.check_password("test") )
-print( db.check_password("some other password") )
-print( db.append( {"data": "some fake data"} ) )
-#raise
-
 #TEST
 db.add_password("test")
 
 #make a parser for the input
 #see: https://flask-restx.readthedocs.io/en/latest/parsing.html
-
 from flask_restx import reqparse
 GET_parser = reqparse.RequestParser()
 GET_parser.add_argument('key', required=True, help="Parameter 'key' required.")
