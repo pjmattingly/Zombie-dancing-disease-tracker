@@ -33,9 +33,6 @@ class Database:
 
         return False
 
-        #from werkzeug.exceptions import Unauthorized
-        #raise Unauthorized('Incorrect key.') #401
-
     def append(self, row):
         self._db["data"].append( self._escape_input(row) )
         return self.__repr__()
@@ -50,13 +47,6 @@ class Database:
         return res
 
     def __repr__(self):
-        #res = {}
-        #avoid exposing internal database keys (that start with _)
-        #for key in self._db.keys():
-        #    if not str(key).startswith("_"):
-        #        res[key] = self._db[key]
-        
-        #return res
         return list(self._db["data"])
 
 from flask import Flask

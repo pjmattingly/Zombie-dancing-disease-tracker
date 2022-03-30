@@ -71,3 +71,32 @@ class Test__repr__:
 
         assert isinstance(res, list)
         assert len(res) == 0
+
+class Test_escape_input:
+    def test1(self, setup_database):
+        sample_row = {"data": "some stored data"}
+        res = test_db._escape_input( sample_row )
+
+        assert len(res) == 1
+        assert "data" in res
+        assert res["data"] == "some stored data"
+
+    def test2(self, setup_database):
+        sample_row = {"data": "<b>some stored data<\b>"}
+        res = test_db._escape_input( sample_row )
+
+        assert len(res) == 1
+        assert "data" in res
+        assert "some stored data" in res["data"]
+        assert '&lt;b&gt;' in res["data"] #<b>
+        assert '&lt;\x08&gt;' in res["data"] #<\b>
+
+    def test3(self, setup_database):
+        sample_row = {"<b>data<\b>": "some stored data"}
+        res = test_db._escape_input( sample_row )
+
+        assert len(res) == 1
+        k = list(res.keys())[0]
+        assert "data" in k
+        assert '&lt;b&gt;' in k #<b>
+        assert '&lt;\x08&gt;' in k #<\b>
