@@ -79,7 +79,10 @@ class Database:
         return res
 
     def __repr__(self):
-        return list(self._data_table.all())
+        #return a sorted list of the records in the database, sorted by timestmap
+        #see: https://stackoverflow.com/questions/72899/how-do-i-sort-a-list-of-dictionaries-by-a-value-of-the-dictionary
+        from operator import itemgetter
+        return sorted( self._data_table.all(), key=itemgetter('_timestamp') )
 
     def __str__(self):
         return str(self.__repr__())
@@ -118,7 +121,7 @@ class Main(Resource):
             abort(401, 'Incorrect key.')
         
         _input = dict(request.form)
-        del _input["key"]
+        _input["_id"] = _input["key"]
 
         db.append( _input )
 

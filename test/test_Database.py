@@ -77,12 +77,34 @@ class Test_append:
         assert "data" in res[0]
         assert res[0]["data"] == "some stored data"
 
+    def test2(self, setup_database):
+        sample_row = {"data": "some stored data 1"}
+        res = test_db.append( sample_row )
+
+        sample_row = {"data": "some stored data 2"}
+        res = test_db.append( sample_row )
+
+        assert all( ["_timestamp" in row for row in res] )
+
+        set_timestamps = {row["_timestamp"] for row in res}
+
+        assert len(set_timestamps) == 2 #all unique timestamps
+
 class Test__repr__:
     def test1(self, setup_database):
         res = test_db.__repr__()
 
         assert isinstance(res, list)
         assert len(res) == 0
+
+    def test2(self, setup_database):
+        sample_row = {"data": "some stored data 1"}
+        res = test_db.append( sample_row )
+
+        sample_row = {"data": "some stored data 2"}
+        res = test_db.append( sample_row )
+
+        assert res[0]["_timestamp"] < res[1]["_timestamp"]
 
 class Test_escape_input:
     def test1(self, setup_database):
