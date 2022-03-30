@@ -1,13 +1,35 @@
 _DEBUG = True
 
 class Database:
-    def __init__(self):
-        self._db = {}
-        self._db["_passwords"] = []
-        self._db["data"] = []
+    def __init__(self, path=None):
+        from pathlib import Path
+        _path = Path('./db.json')
+
+        if not path is None:
+            _path = Path(path)
+
+        if not _path.exists():
+            raise OSError(f"Path not found: {_path}")
+
+        if _path.is_dir():
+            _path = _path / "db.json"
+
+        from tinydb import TinyDB
+        self._db = TinyDB(_path)
+        self._password_table = self._db.table('_passwords')
+        self._data_table = self._db.table('data')
+
+        self._password_id = 0
+
+        #self._db["_passwords"] = []
+        #self._db["data"] = []
 
     def add_password(self, password):
-        self._db["_passwords"].append( self._create_password(password) )
+        _p = self._create_password(password)
+        self._password_table.insert({self._password_id: _p})
+        self._password_id += 1
+
+        #self._db["_passwords"].append( self._create_password(password) )
 
     def _create_password(self, password):
         #hash a plain-text password for storage
@@ -18,7 +40,8 @@ class Database:
     def get_passwords(self): return self._get_passwords()
 
     def _get_passwords(self):
-        return self._db["_passwords"]
+        #return self._db["_passwords"]
+        return [list(row.values())[0] for row in self._password_table.all()]
 
     def check_password(self, password):
         return self._check_password( password, self._get_passwords() )
@@ -34,7 +57,8 @@ class Database:
         return False
 
     def append(self, row):
-        self._db["data"].append( self._escape_input(row) )
+        #self._db["data"].append( self._escape_input(row) )
+        self._data_table.insert( self._escape_input(row) )
         return self.__repr__()
 
     def _escape_input(self, row):
@@ -47,7 +71,11 @@ class Database:
         return res
 
     def __repr__(self):
-        return list(self._db["data"])
+        #return list(self._db["data"])
+        return list(self._data_table.all())
+
+    def __str__(self):
+        return str(self.__repr__())
 
 from flask import Flask
 app = Flask(__name__)
@@ -56,6 +84,16 @@ from flask_restx import Api
 api = Api(app)
 
 db = Database()
+
+print(db)
+db.add_password("test")
+#print(db._password_id)
+#print(db._password_table.all())
+print( db.get_passwords() )
+print( db.check_password("test") )
+print( db.check_password("some other password") )
+print( db.append( {"data": "some fake data"} ) )
+#raise
 
 #TEST
 db.add_password("test")

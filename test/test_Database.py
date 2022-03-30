@@ -5,13 +5,25 @@ from app import Database
 test_db = None
 
 @pytest.fixture
-def setup_database():
+def setup_database(tmp_path):
     global test_db
-    test_db = Database()
+    test_db = Database(tmp_path)
 
     yield
 
     test_db = None
+
+class Test__init__:
+    def test1(self, setup_database):
+        try:
+            Database("some bad path")
+            assert False
+        except OSError:
+            assert True
+
+    def test2(self, setup_database, tmp_path):
+        Database(tmp_path)
+        assert True
 
 class Test_add_password:
     def test1(self, setup_database):
