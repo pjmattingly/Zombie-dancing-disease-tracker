@@ -37,17 +37,27 @@ class Database:
         #raise Unauthorized('Incorrect key.') #401
 
     def append(self, row):
-        self._db["data"].extend(row)
-        return self._db["data"]
+        self._db["data"].append( self._escape_input(row) )
+        return self.__repr__()
+
+    def _escape_input(self, row):
+        res = dict()
+        for k in row.keys():
+            from flask import escape
+            _k = escape(k)
+            _v = escape(row[k])
+            res[_k] = _v
+        return res
 
     def __repr__(self):
-        res = {}
+        #res = {}
         #avoid exposing internal database keys (that start with _)
-        for key in self._db.keys():
-            if not str(key).startswith("_"):
-                res[key] = self._db[key]
+        #for key in self._db.keys():
+        #    if not str(key).startswith("_"):
+        #        res[key] = self._db[key]
         
-        return res
+        #return res
+        return list(self._db["data"])
 
 from flask import Flask
 app = Flask(__name__)
@@ -60,17 +70,15 @@ db = Database()
 #TEST
 db.add_password("test")
 
-def check_input_format(request_form):
-    from werkzeug.exceptions import BadRequest
-    if not "data" in request_form:
-        raise BadRequest("Parameter 'data' is required.") #400
+#make a parser for the input
+#see: https://flask-restx.readthedocs.io/en/latest/parsing.html
 
-    from werkzeug.exceptions import Unauthorized
-    if not "key" in request_form:
-        #instead of using the flask abort() use the internal exceptions
-        #see: https://flask.palletsprojects.com/en/2.1.x/errorhandling/
-        #https://werkzeug.palletsprojects.com/en/2.1.x/exceptions/
-        raise BadRequest("Parameter 'key' required.") #400
+from flask_restx import reqparse
+GET_parser = reqparse.RequestParser()
+GET_parser.add_argument('key', required=True, help="Parameter 'key' required.")
+
+#inherit from the GET parser to DRY
+POST_parser = GET_parser.copy()
 
 from flask_restx import Resource
 from flask import request
@@ -78,22 +86,27 @@ from flask import request
 @api.route('/log')
 class Main(Resource):
     def post(self):
-        check_input_format(request.form)
-        
-        password = request.form['key']
+        args = POST_parser.parse_args()
+        password = args['key']
+
         if not db.check_password( password ):
-            flask.abort(401, 'Incorrect key.')
+            from flask import abort
+            abort(401, 'Incorrect key.')
         
-        from flask import escape
-        db.append( escape( request.form['data'] ) )
+        _input = dict(request.form)
+        del _input["key"]
+
+        db.append( _input )
 
         return db.__repr__()
 
     def get(self):
-        #TODO, checking for "key" parameter here
+        args = GET_parser.parse_args()
+        password = args["key"]
 
         if not db.check_password( password ):
-            flask.abort(401, 'Incorrect key.')
+            from flask import abort
+            abort(401, 'Incorrect key.')
 
         return db.__repr__()
 

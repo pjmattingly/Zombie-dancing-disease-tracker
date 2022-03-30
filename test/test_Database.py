@@ -56,20 +56,18 @@ class Test_append:
     def test1(self, setup_database):
         res = test_db.__repr__()
 
-        assert "data" in res
-        assert len(res["data"]) == 0
+        assert len(res) == 0
 
-        sample_row = [{"key": "some password", "data": "some stored data"}]
+        sample_row = {"data": "some stored data"}
         res = test_db.append( sample_row )
 
         assert len(res) == 1
-
-        assert len(test_db.__repr__()["data"]) == 1
+        assert "data" in res[0]
+        assert res[0]["data"] == "some stored data"
 
 class Test__repr__:
     def test1(self, setup_database):
         res = test_db.__repr__()
 
-        assert isinstance(res, dict)
-        assert "data" in res
-        assert len(res) == 1
+        assert isinstance(res, list)
+        assert len(res) == 0
