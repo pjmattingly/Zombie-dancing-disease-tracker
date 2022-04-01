@@ -170,6 +170,12 @@ class Main(Resource):
     decorators = [limiter.limit("1/second")]
 
     def post(self):
+        #limit POST requests to ~2GB
+        #see: https://stackoverflow.com/questions/2880722/can-http-post-be-limitless
+        #see: https://serverfault.com/questions/151090/is-there-a-maximum-size-for-content-of-an-http-post
+        if request.content_length > 2 * 1024 * 1024 * 1024:
+            abort(414, 'Request-URI Too Long.') #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
+
         args = POST_parser.parse_args()
         password = args['key']
 
@@ -191,6 +197,12 @@ class Main(Resource):
         return db.__repr__()
 
     def get(self):
+        #limit GET requests to ~2kB
+        #see: https://stackoverflow.com/questions/2659952/maximum-length-of-http-get-request
+        #see: https://stackoverflow.com/questions/25036498/is-it-possible-to-limit-flask-post-data-size-on-a-per-route-basis
+        if request.content_length > 2 * 1024:
+            abort(414, 'Request-URI Too Long.') #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
+
         args = GET_parser.parse_args()
         password = args["key"]
 
