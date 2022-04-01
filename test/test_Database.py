@@ -134,3 +134,113 @@ class Test_escape_input:
         assert "data" in k
         assert '&lt;b&gt;' in k #<b>
         assert '&lt;\x08&gt;' in k #<\b>
+
+class Test_search:
+    def test1(self, setup_database):
+        #sample_row = {"data": "some stored data"}
+        #res = test_db.append( sample_row )
+
+        res = test_db.search({})
+
+        assert len(res) == 0
+
+    def test2(self, setup_database):
+        res = test_db.search({"some key": "some data"})
+
+        assert len(res) == 0
+
+    def test3(self, setup_database):
+        sample_row = {"data": "some stored data"}
+        test_db.append( sample_row )
+
+        res = test_db.search({"data": "some bad data"})
+
+        assert len(res) == 0
+
+    def test4(self, setup_database):
+        sample_row = {"data": "some stored data"}
+        test_db.append( sample_row )
+
+        res = test_db.search({"some bad key": "some stored data"})
+
+        assert len(res) == 0
+
+    def test5(self, setup_database):
+        sample_row = {"data": "some stored data"}
+        test_db.append( sample_row )
+
+        res = test_db.search({"data": "some stored data"})
+
+        assert len(res) == 1
+        assert "data" in res[0]
+        assert res[0]["data"] == "some stored data"
+
+    def test6(self, setup_database):
+        sample_row = {"data": "some stored data"}
+        test_db.append( sample_row )
+
+        res = test_db.search({"data": ""})
+
+        assert len(res) == 0
+
+    def test7(self, setup_database):
+        sample_row = {"data": "some stored data"}
+        test_db.append( sample_row )
+
+        res = test_db.search({"": "some stored data"})
+
+        assert len(res) == 0
+
+    def test8(self, setup_database):
+        sample_row = {"data": "some stored data"}
+        test_db.append( sample_row )
+
+        res = test_db.search({"": ""})
+
+        assert len(res) == 0
+
+from unittest.mock import patch
+class Test_check_disk_usage:
+    @patch('shutil.disk_usage')
+    def test1(self, mock_disk_usage, setup_database):
+        from unittest.mock import MagicMock
+        test_res = MagicMock()
+        mock_disk_usage.return_value = test_res
+        test_res.free = 1
+        test_res.total = 1
+
+        res = test_db._check_disk_usage()
+        
+        assert True
+
+    @patch('shutil.disk_usage')
+    def test2(self, mock_disk_usage, setup_database):
+        from unittest.mock import MagicMock
+        test_res = MagicMock()
+        mock_disk_usage.return_value = test_res
+        test_res.free = 0
+        test_res.total = 1
+
+        try:
+            test_db._check_disk_usage()
+        except OSError as e:
+            import errno
+            assert e.errno == errno.ENOSPC
+        else:
+            assert False
+
+    @patch('shutil.disk_usage')
+    def test3(self, mock_disk_usage, setup_database):
+        from unittest.mock import MagicMock
+        test_res = MagicMock()
+        mock_disk_usage.return_value = test_res
+        test_res.free = 0
+        test_res.total = 1
+
+        try:
+            test_db.append({"test", "test"})
+        except OSError as e:
+            import errno
+            assert e.errno == errno.ENOSPC
+        else:
+            assert False

@@ -59,6 +59,8 @@ class Database:
         return False
 
     def append(self, row):
+        self._check_disk_usage()
+
         new_row = self._escape_input(row)
 
         from datetime import datetime
@@ -88,6 +90,14 @@ class Database:
         #return a list of rows of which the query `q` is a subset of each row
         #see: https://tinydb.readthedocs.io/en/latest/usage.html#advanced-queries
         return list( self._data_table.search(dbq.fragment( safe_query )) )
+
+    def _check_disk_usage(self):
+        import shutil
+        usage = shutil.disk_usage("/")
+
+        if ((usage.free / usage.total) <= .01):
+            import errno
+            raise OSError(errno.ENOSPC, "No space left on device")
 
     def __repr__(self):
         _all = self._data_table.all()
@@ -154,7 +164,12 @@ class Main(Resource):
         _input = dict(request.form)
         _input["_id"] = _input["key"]
 
-        db.append( _input )
+        try:
+            db.append( _input )
+        except OSError as e:
+            import errno
+            if (e.errno == errno.ENOSPC):
+                abort(507, 'Could not append to the data base as out of storage.')
 
         return db.__repr__()
 
