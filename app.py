@@ -18,11 +18,15 @@ class Database:
         from tinydb.storages import JSONStorage
         from tinydb_serialization import SerializationMiddleware
         from tinydb_serialization.serializers import DateTimeSerializer
-        serialization = SerializationMiddleware(JSONStorage)
-        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
+        serialization_storage = SerializationMiddleware(JSONStorage)
+        serialization_storage.register_serializer(DateTimeSerializer(), 'TinyDate')
+
+        #adding support for in-memory cache to optimize for queries
+        from tinydb.middlewares import CachingMiddleware
+        caching_n_serialization_store = CachingMiddleware(serialization_storage)
 
         from tinydb import TinyDB
-        self._db = TinyDB(_path, storage=serialization)
+        self._db = TinyDB(_path, storage=caching_n_serialization_store)
 
         self._password_table = self._db.table('_passwords')
         self._data_table = self._db.table('data')
@@ -148,11 +152,23 @@ POST_parser.add_argument('key', required=True, help="Parameter 'key' required.")
 #inherit from the GET parser to DRY
 GET_parser = POST_parser.copy()
 
+#rate limiting to avoid swamping the server
+from flask_limiter import Limiter
+limiter = Limiter(
+    app,
+    #apply the limit to all incoming requestsnot just single IPs
+    key_func = lambda : "",
+    )
+
 from flask_restx import Resource
 from flask import request
 
 @api.route('/log')
 class Main(Resource):
+    #apply the rate limiter to each handler
+    #see: https://flask-limiter.readthedocs.io/en/stable/recipes.html#using-flask-pluggable-views
+    decorators = [limiter.limit("1/second")]
+
     def post(self):
         args = POST_parser.parse_args()
         password = args['key']
@@ -170,6 +186,7 @@ class Main(Resource):
             import errno
             if (e.errno == errno.ENOSPC):
                 abort(507, 'Could not append to the data base as out of storage.')
+            raise
 
         return db.__repr__()
 

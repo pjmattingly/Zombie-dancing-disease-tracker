@@ -81,6 +81,9 @@ class Test_append:
         sample_row = {"data": "some stored data 1"}
         res = test_db.append( sample_row )
 
+        import time
+        time.sleep(.1) #add a small delay to make sure timestamps are unique
+
         sample_row = {"data": "some stored data 2"}
         res = test_db.append( sample_row )
 
@@ -100,6 +103,9 @@ class Test__repr__:
     def test2(self, setup_database):
         sample_row = {"data": "some stored data 1"}
         res = test_db.append( sample_row )
+
+        import time
+        time.sleep(.1) #add a small delay to make sure timestamps are unique
 
         sample_row = {"data": "some stored data 2"}
         res = test_db.append( sample_row )
