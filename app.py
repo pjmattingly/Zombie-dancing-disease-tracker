@@ -23,6 +23,7 @@ class Database:
 
         from tinydb import TinyDB
         self._db = TinyDB(_path, storage=serialization)
+
         self._password_table = self._db.table('_passwords')
         self._data_table = self._db.table('data')
 
@@ -78,14 +79,44 @@ class Database:
             res[_k] = _v
         return res
 
+    def search(self, q):
+        safe_query = self._escape_input(q)
+
+        from tinydb import Query
+        dbq = Query()
+
+        #return a list of rows of which the query `q` is a subset of each row
+        #see: https://tinydb.readthedocs.io/en/latest/usage.html#advanced-queries
+        return list( self._data_table.search(dbq.fragment( safe_query )) )
+
     def __repr__(self):
+        _all = self._data_table.all()
+
+        #if there are no records, then no need for sorting
+        if len(_all) == 0:
+            return _all
+
         #return a sorted list of the records in the database, sorted by timestmap
         #see: https://stackoverflow.com/questions/72899/how-do-i-sort-a-list-of-dictionaries-by-a-value-of-the-dictionary
         from operator import itemgetter
-        return sorted( self._data_table.all(), key=itemgetter('_timestamp') )
+        return sorted(_all , key=itemgetter('_timestamp') )
 
     def __str__(self):
         return str(self.__repr__())
+
+def to_JSON_safe(rows):
+    #JSON will choke on some values in the database, so convert them to JSON-safe
+    #values here
+
+    res = list()
+
+    for row in rows:
+        tmp = dict(row)
+        from datetime import datetime
+        tmp["_timestamp"] = row["_timestamp"].isoformat()
+        res.append( tmp )
+
+    return res
 
 from flask import Flask
 app = Flask(__name__)
@@ -101,11 +132,11 @@ db.add_password("test")
 #make a parser for the input
 #see: https://flask-restx.readthedocs.io/en/latest/parsing.html
 from flask_restx import reqparse
-GET_parser = reqparse.RequestParser()
-GET_parser.add_argument('key', required=True, help="Parameter 'key' required.")
+POST_parser = reqparse.RequestParser()
+POST_parser.add_argument('key', required=True, help="Parameter 'key' required.")
 
 #inherit from the GET parser to DRY
-POST_parser = GET_parser.copy()
+GET_parser = POST_parser.copy()
 
 from flask_restx import Resource
 from flask import request
@@ -135,7 +166,14 @@ class Main(Resource):
             from flask import abort
             abort(401, 'Incorrect key.')
 
-        return db.__repr__()
+        search_args = dict(request.form)
+        del search_args["key"]
+
+        #if no query, then return the entire database
+        if len(search_args) == 0:
+            return to_JSON_safe( db.__repr__() )
+
+        return to_JSON_safe( db.search(search_args) )
 
 if __name__ == '__main__':
     app.run(debug=_DEBUG)
