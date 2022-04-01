@@ -196,6 +196,11 @@ class Main(Resource):
 
         return db.__repr__()
 
+    #TODO
+    #if we need to support larger upload sizes for logs we can implement support
+    #for file uploading, as an alternative to using POST
+    #see: https://flask.palletsprojects.com/en/2.1.x/patterns/fileuploads/
+
     def get(self):
         #limit GET requests to ~2kB
         #see: https://stackoverflow.com/questions/2659952/maximum-length-of-http-get-request
