@@ -147,7 +147,12 @@ db.add_password("test")
 #see: https://flask-restx.readthedocs.io/en/latest/parsing.html
 from flask_restx import reqparse
 POST_parser = reqparse.RequestParser()
-POST_parser.add_argument('key', required=True, help="Parameter 'key' required.")
+POST_parser.add_argument(
+    'key',
+    required=True,
+    help="Parameter 'key' required.",
+    location='form' #BUG, fix, re: request.json
+)
 
 #inherit from the GET parser to DRY
 GET_parser = POST_parser.copy()
@@ -156,12 +161,22 @@ GET_parser = POST_parser.copy()
 from flask_limiter import Limiter
 limiter = Limiter(
     app,
-    #apply the limit to all incoming requestsnot just single IPs
+    #apply the limit to all incoming requests not just single IPs
     key_func = lambda : "",
     )
 
 from flask_restx import Resource
 from flask import request
+
+#BUG
+'''
+When accessing `request.json` the following error is returned for all requests:
+    `code 400, message Bad request syntax`
+A fix is to avoid accessing the parameter on `request`
+
+reqparse will implicitly attempt to access request.json, and so a fix
+has been applied to avoid accessing it
+'''
 
 @api.route('/log')
 class Main(Resource):
@@ -170,11 +185,17 @@ class Main(Resource):
     decorators = [limiter.limit("1/second")]
 
     def post(self):
+        #from flask import request
+
+        print(request)
+
         #limit POST requests to ~2GB
         #see: https://stackoverflow.com/questions/2880722/can-http-post-be-limitless
         #see: https://serverfault.com/questions/151090/is-there-a-maximum-size-for-content-of-an-http-post
-        if request.content_length > 2 * 1024 * 1024 * 1024:
-            abort(414, 'Request-URI Too Long.') #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
+        if not request.content_length is None:
+            if request.content_length > 2 * 1024 * 1024 * 1024:
+                #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
+                abort(414, 'Request-URI Too Long.')
 
         args = POST_parser.parse_args()
         password = args['key']
@@ -191,7 +212,7 @@ class Main(Resource):
         except OSError as e:
             import errno
             if (e.errno == errno.ENOSPC):
-                abort(507, 'Could not append to the data base as out of storage.')
+                abort(507, 'Could not append to the database as out of storage.')
             raise
 
         return db.__repr__()
@@ -202,11 +223,15 @@ class Main(Resource):
     #see: https://flask.palletsprojects.com/en/2.1.x/patterns/fileuploads/
 
     def get(self):
+        from flask import request
+
         #limit GET requests to ~2kB
         #see: https://stackoverflow.com/questions/2659952/maximum-length-of-http-get-request
         #see: https://stackoverflow.com/questions/25036498/is-it-possible-to-limit-flask-post-data-size-on-a-per-route-basis
-        if request.content_length > 2 * 1024:
-            abort(414, 'Request-URI Too Long.') #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
+        if not request.content_length is None:
+            if request.content_length > 2 * 1024:
+                #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
+                abort(414, 'Request-URI Too Long.')
 
         args = GET_parser.parse_args()
         password = args["key"]
