@@ -1,8 +1,6 @@
 import pytest
-
-from app import Main
-
 from unittest.mock import patch
+from app import Main
 
 from flask import Flask
 _app = Flask(__name__)
@@ -74,7 +72,7 @@ class Test_get:
 
     from app import Database
     @patch.object(Database, 'search')
-    def test_no_search(self, mock_method, monkeypatch):
+    def test_search(self, mock_method, monkeypatch):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
