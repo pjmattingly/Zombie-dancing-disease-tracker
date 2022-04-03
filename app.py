@@ -143,20 +143,6 @@ db = Database()
 #TEST
 db.add_password("test")
 
-#make a parser for the input
-#see: https://flask-restx.readthedocs.io/en/latest/parsing.html
-from flask_restx import reqparse
-POST_parser = reqparse.RequestParser()
-POST_parser.add_argument(
-    'key',
-    required=True,
-    help="Parameter 'key' required.",
-    location='form' #BUG, fix, re: request.json
-)
-
-#inherit from the GET parser to DRY
-GET_parser = POST_parser.copy()
-
 #rate limiting to avoid swamping the server
 from flask_limiter import Limiter
 limiter = Limiter(
@@ -164,9 +150,6 @@ limiter = Limiter(
     #apply the limit to all incoming requests not just single IPs
     key_func = lambda : "",
     )
-
-from flask_restx import Resource
-from flask import request
 
 #BUG
 '''
@@ -178,6 +161,43 @@ reqparse will implicitly attempt to access request.json, and so a fix
 has been applied to avoid accessing it
 '''
 
+#BUG
+'''
+As per Flask-restx documentation their preferred way of parsing key/value pairs
+from requests is their "reqparse", but they also mark it as depreciated
+with no alternative (?)
+    see:
+    https://flask-restx.readthedocs.io/en/latest/parsing.html
+As such, using reqparse comes with a variety of subtle bugs that effect
+both the main function of the code and testing
+    see above
+    and
+    reqparse throws errors when attempting to test with Flask's
+    test_request_context() method
+They recommend using the `marshmallow` library, but do not provide documentation
+on how to do so, and it does not seem obvious how to adapt marshmallow
+to this task given the project's documentation
+    see:
+    https://marshmallow.readthedocs.io/en/stable/index.html
+Thus, since our needs are simple for this application, such parsing has been
+handled manually
+'''
+
+#TODO
+#adapt marshmallow for use in validating requests
+#see: https://medium.com/analytics-vidhya/building-rest-apis-using-flask-restplus-sqlalchemy-marshmallow-cff76b202bfb
+#https://medium.com/craftsmenltd/flask-with-sqlalchemy-marshmallow-2ec34ecfd9d4
+#https://marshmallow.readthedocs.io/en/stable/quickstart.html
+class Required_Argument_Not_Found(Exception): pass
+def _verify_args(args, required_keys=[]):
+    _args = dict(args)
+    for k in required_keys:
+        if not k in _args:
+            m = f"Required argument: '{k}' not found."
+            raise Required_Argument_Not_Found(m)
+    return _args
+
+from flask_restx import Resource
 @api.route('/log')
 class Main(Resource):
     #apply the rate limiter to each handler
@@ -185,9 +205,7 @@ class Main(Resource):
     decorators = [limiter.limit("1/second")]
 
     def post(self):
-        #from flask import request
-
-        print(request)
+        from flask import request
 
         #limit POST requests to ~2GB
         #see: https://stackoverflow.com/questions/2880722/can-http-post-be-limitless
@@ -197,7 +215,11 @@ class Main(Resource):
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
                 abort(414, 'Request-URI Too Long.')
 
-        args = POST_parser.parse_args()
+        try:
+            args = _verify_args(request.form, ["key"])
+        except Required_Argument_Not_Found as e:
+            abort(400, str(e))
+
         password = args['key']
 
         if not db.check_password( password ):
@@ -213,17 +235,19 @@ class Main(Resource):
             import errno
             if (e.errno == errno.ENOSPC):
                 abort(507, 'Could not append to the database as out of storage.')
-            raise
+            else:
+                raise
 
         return db.__repr__()
 
     #TODO
-    #if we need to support larger upload sizes for logs we can implement support
-    #for file uploading, as an alternative to using POST
+    #if we need to support larger upload/POST sizes for logs we can implement
+    #support for file uploading, as an alternative to using POST
     #see: https://flask.palletsprojects.com/en/2.1.x/patterns/fileuploads/
 
     def get(self):
         from flask import request
+        from flask import abort
 
         #limit GET requests to ~2kB
         #see: https://stackoverflow.com/questions/2659952/maximum-length-of-http-get-request
@@ -233,12 +257,15 @@ class Main(Resource):
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
                 abort(414, 'Request-URI Too Long.')
 
-        args = GET_parser.parse_args()
+        try:
+            args = _verify_args(request.form, ["key"])
+        except Required_Argument_Not_Found as e:
+            abort(400, str(e))
+
         password = args["key"]
 
         if not db.check_password( password ):
-            from flask import abort
-            abort(401, 'Incorrect key.')
+            abort(400, 'Incorrect key.')
 
         search_args = dict(request.form)
         del search_args["key"]
