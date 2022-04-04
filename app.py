@@ -145,14 +145,6 @@ db = Database()
 #TEST
 db.add_user("test", "test")
 
-#print(db._user_table.all())
-#print( db.username_exists("test") )
-#print( db.username_exists("some other username") )
-#print( db.username_has_password("some bad username", "test") )
-#print( db.username_has_password("test", "some bad password") )
-#print( db.username_has_password("test", "test") )
-#raise
-
 #rate limiting to avoid swamping the server
 from flask_limiter import Limiter
 limiter = Limiter(
@@ -313,7 +305,7 @@ class Main(Resource):
             if request.content_length > 2 * 1024:
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
                 abort(414)
-        
+
         try:
             authorized = ah.is_authorized( request.authorization )
         except Missing_Username_Or_Password:
