@@ -28,36 +28,38 @@ class Database:
         from tinydb import TinyDB
         self._db = TinyDB(_path, storage=caching_n_serialization_store)
 
-        self._password_table = self._db.table('_passwords')
+        self._user_table = self._db.table('_users')
         self._data_table = self._db.table('data')
 
-        self._password_id = 0
-
-    def add_password(self, password):
-        _p = self._create_password(password)
-        self._password_table.insert({self._password_id: _p})
-        self._password_id += 1
-
-    def _create_password(self, password):
+    def add_user(self, username, password):
         #hash a plain-text password for storage
         #see: https://werkzeug.palletsprojects.com/en/2.1.x/utils/#werkzeug.security.generate_password_hash
         from werkzeug.security import generate_password_hash
-        return generate_password_hash(password)
+        _p = generate_password_hash(password)
 
-    def get_passwords(self): return self._get_passwords()
+        from flask import escape
+        self._user_table.insert({escape(username): _p})
 
-    def _get_passwords(self):
-        return [list(row.values())[0] for row in self._password_table.all()]
+    def username_exists(self, username):
+        from flask import escape
+        _username = escape(username)
 
-    def check_password(self, password):
-        return self._check_password( password, self._get_passwords() )
+        _users = [list(row.keys())[0] for row in self._user_table.all()]
+        return (_username in _users)
 
-    def _check_password(self, password, stored_passwords):
-        #hash the key and check if it's authorized
-        #see: https://werkzeug.palletsprojects.com/en/2.1.x/utils/#werkzeug.security.check_password_hash
-        for p in stored_passwords:
+    def username_has_password(self, username, password):
+        from flask import escape
+        _username = escape(username)
+
+        for row in self._user_table.all():
+            _u = list(row.keys())[0]
+            _p = list(row.values())[0]
+
             from werkzeug.security import check_password_hash
-            if check_password_hash(p, password):
+            _username_matches = (_username == _u)
+            _password_matches = check_password_hash(_p, password)
+
+            if _username_matches and _password_matches:
                 return True
 
         return False
@@ -141,7 +143,15 @@ api = Api(app)
 db = Database()
 
 #TEST
-db.add_password("test")
+db.add_user("test", "test")
+
+#print(db._user_table.all())
+#print( db.username_exists("test") )
+#print( db.username_exists("some other username") )
+#print( db.username_has_password("some bad username", "test") )
+#print( db.username_has_password("test", "some bad password") )
+#print( db.username_has_password("test", "test") )
+#raise
 
 #rate limiting to avoid swamping the server
 from flask_limiter import Limiter
@@ -203,6 +213,48 @@ class InsufficientStorage(HTTPException):
     code = 507
     description = 'Insufficient Storage'
 
+class Missing_Username_Or_Password(Exception): pass
+class Bad_Username_Or_Password(Exception): pass
+class Authorization_Handler:
+    def __init__(self, database):
+        self._db = database
+        self._not_authorized_msg = "Incorrect username or password."
+        self.not_authorized_msg = self._not_authorized_msg
+
+    def _verify_authorization_present(self, request_authorization):
+        #example: {'username': 'peter', 'password': 'test'}
+
+        if (request_authorization is None) or (len(request_authorization) == 0):
+            raise Missing_Username_Or_Password("Username and password required.")
+            #abort(401, "Username and password required.")
+
+        if (len(request_authorization['username']) == 0) or \
+        (len(request_authorization['password']) == 0):
+            raise Bad_Username_Or_Password(self._not_authorized_msg)
+            #abort(401, self._not_authorized_msg)
+
+        return request_authorization
+
+    def _check_authorization(self, username, password):
+        #hash the key and check if it's authorized
+        #see: https://werkzeug.palletsprojects.com/en/2.1.x/utils/#werkzeug.security.check_password_hash
+        for p in stored_passwords:
+            from werkzeug.security import check_password_hash
+            if check_password_hash(p, password):
+                return True
+
+        return False
+
+    def is_authorized(self, request_authorization):
+        self._verify_authorization_present(request_authorization)
+
+        _u = request_authorization['username']
+        _p = request_authorization['password']
+
+        return db.username_has_password(_u, _p)
+
+ah = Authorization_Handler(db)
+
 from flask_restx import Resource
 @api.route('/log')
 class Main(Resource):
@@ -228,19 +280,16 @@ class Main(Resource):
                 abort(414)
 
         try:
-            args = _verify_args(request.form, ["key"])
-        except Required_Argument_Not_Found as e:
-            abort(400, str(e))
-
-        password = args['key']
-
-        if not db.check_password( password ):
-            from flask import abort
-            abort(401, 'Incorrect key.')
+            authorized = ah.is_authorized( request.authorization )
+        except Missing_Username_Or_Password:
+            abort(401, "Username and password required.")
+        except Bad_Username_Or_Password:
+            abort(401, ah.not_authorized_msg)
+        else:
+            if not authorized:
+                abort(401, ah.not_authorized_msg)
         
         _input = dict(request.form)
-        _input["_id"] = _input["key"]
-        del _input["key"]
 
         try:
             db.append( _input )
@@ -264,19 +313,18 @@ class Main(Resource):
             if request.content_length > 2 * 1024:
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
                 abort(414)
-
+        
         try:
-            args = _verify_args(request.form, ["key"])
-        except Required_Argument_Not_Found as e:
-            abort(400, str(e))
-
-        password = args["key"]
-
-        if not db.check_password( password ):
-            abort(401, 'Incorrect key.')
+            authorized = ah.is_authorized( request.authorization )
+        except Missing_Username_Or_Password:
+            abort(401, "Username and password required.")
+        except Bad_Username_Or_Password:
+            abort(401, ah.not_authorized_msg)
+        else:
+            if not authorized:
+                abort(401, ah.not_authorized_msg)
 
         search_args = dict(request.form)
-        del search_args["key"]
 
         #if no query, then return the entire database
         if len(search_args) == 0:
