@@ -197,6 +197,12 @@ def _verify_args(args, required_keys=[]):
             raise Required_Argument_Not_Found(m)
     return _args
 
+#custom exception for HTTP error 507
+from werkzeug.exceptions import HTTPException
+class InsufficientStorage(HTTPException):
+    code = 507
+    description = 'Insufficient Storage'
+
 from flask_restx import Resource
 @api.route('/log')
 class Main(Resource):
@@ -206,6 +212,12 @@ class Main(Resource):
 
     def post(self):
         from flask import request
+        from flask import abort
+
+        #TODO
+        #if we need to support larger upload/POST sizes for logs we can implement
+        #support for file uploading, as an alternative to using POST
+        #see: https://flask.palletsprojects.com/en/2.1.x/patterns/fileuploads/
 
         #limit POST requests to ~2GB
         #see: https://stackoverflow.com/questions/2880722/can-http-post-be-limitless
@@ -213,7 +225,7 @@ class Main(Resource):
         if not request.content_length is None:
             if request.content_length > 2 * 1024 * 1024 * 1024:
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
-                abort(414, 'Request-URI Too Long.')
+                abort(414)
 
         try:
             args = _verify_args(request.form, ["key"])
@@ -228,22 +240,18 @@ class Main(Resource):
         
         _input = dict(request.form)
         _input["_id"] = _input["key"]
+        del _input["key"]
 
         try:
             db.append( _input )
         except OSError as e:
             import errno
-            if (e.errno == errno.ENOSPC):
-                abort(507, 'Could not append to the database as out of storage.')
+            if ( str(errno.ENOSPC) == str(e) ):
+                raise InsufficientStorage('Could not append to the database as out of storage.')
             else:
                 raise
 
-        return db.__repr__()
-
-    #TODO
-    #if we need to support larger upload/POST sizes for logs we can implement
-    #support for file uploading, as an alternative to using POST
-    #see: https://flask.palletsprojects.com/en/2.1.x/patterns/fileuploads/
+        return to_JSON_safe( db.__repr__() )
 
     def get(self):
         from flask import request
@@ -255,7 +263,7 @@ class Main(Resource):
         if not request.content_length is None:
             if request.content_length > 2 * 1024:
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
-                abort(414, 'Request-URI Too Long.')
+                abort(414)
 
         try:
             args = _verify_args(request.form, ["key"])
@@ -265,7 +273,7 @@ class Main(Resource):
         password = args["key"]
 
         if not db.check_password( password ):
-            abort(400, 'Incorrect key.')
+            abort(401, 'Incorrect key.')
 
         search_args = dict(request.form)
         del search_args["key"]
