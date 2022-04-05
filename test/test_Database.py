@@ -26,21 +26,6 @@ class Test__init__:
         Database(tmp_path)
         assert True
 
-#TODO, change to add_user()
-'''
-class Test_add_password:
-    def test1(self, setup_database):
-        res = test_db.get_passwords()
-
-        assert len(res) == 0
-
-        test_db.add_password("test")
-
-        res = test_db.get_passwords()
-
-        assert len(res) == 1
-'''
-
 class Test_add_user:
     def test1(self, setup_database):
         user_records = test_db._user_table.all()
@@ -99,7 +84,6 @@ class Test_username_has_password:
                 "some bad username", "some bad password"
             )
 
-#TODO, add checks for validating input
 class Test_append:
     def test1(self, setup_database):
         res = test_db.__repr__()

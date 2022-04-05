@@ -19,16 +19,6 @@ class Authorization_Handler:
 
         return request_authorization
 
-    def _check_authorization(self, username, password):
-        #hash the key and check if it's authorized
-        #see: https://werkzeug.palletsprojects.com/en/2.1.x/utils/#werkzeug.security.check_password_hash
-        for p in stored_passwords:
-            from werkzeug.security import check_password_hash
-            if check_password_hash(p, password):
-                return True
-
-        return False
-
     def is_authorized(self, request_authorization):
         self._verify_authorization_present(request_authorization)
 
