@@ -1,58 +1,61 @@
-_DEBUG = True
+#BUG
+'''
+    When accessing `request.json` the following error is returned for all requests:
+        `code 400, message Bad request syntax`
+    A fix is to avoid accessing the parameter on `request`
 
-from Database import Database as DB
-from Database import to_JSON_safe
+    reqparse will implicitly attempt to access request.json, and so a fix
+    has been applied to avoid accessing it
+'''
+
+#BUG
+'''
+    As per Flask-restx documentation their preferred way of parsing key/value pairs
+    from requests is their "reqparse", but they also mark it as depreciated
+    with no alternative (?)
+        see:
+        https://flask-restx.readthedocs.io/en/latest/parsing.html
+    As such, using reqparse comes with a variety of subtle bugs that effect
+    both the main function of the code and testing
+        see above
+        and
+        reqparse throws errors when attempting to test with Flask's
+        test_request_context() method
+    They recommend using the `marshmallow` library, but do not provide documentation
+    on how to do so, and it does not seem obvious how to adapt marshmallow
+    to this task given the project's documentation
+        see:
+        https://marshmallow.readthedocs.io/en/stable/index.html
+    Thus, since our needs are simple for this application, such parsing has been
+    handled manually
+'''
+_db = None
+_ah = None
+
+def run(db, _debug = False):
+    global _ah
+    global _db
+
+    _db = db
+
+    from Authorization_Handler import Authorization_Handler
+    _ah = Authorization_Handler(db)
+
+    _app.run(debug=_debug)
 
 from flask import Flask
-app = Flask(__name__)
+_app = Flask(__name__)
 
 from flask_restx import Api
-api = Api(app)
-
-db = DB()
-
-#TEST
-db.add_user("test", "test")
+_api = Api(_app)
 
 #rate limiting to avoid swamping the server
 from flask_limiter import Limiter
-limiter = Limiter(
-    app,
+_limiter = Limiter(
+    _app,
     #apply the limit to all incoming requests not just single IPs
     key_func = lambda : "",
     )
-
-#BUG
-'''
-When accessing `request.json` the following error is returned for all requests:
-    `code 400, message Bad request syntax`
-A fix is to avoid accessing the parameter on `request`
-
-reqparse will implicitly attempt to access request.json, and so a fix
-has been applied to avoid accessing it
-'''
-
-#BUG
-'''
-As per Flask-restx documentation their preferred way of parsing key/value pairs
-from requests is their "reqparse", but they also mark it as depreciated
-with no alternative (?)
-    see:
-    https://flask-restx.readthedocs.io/en/latest/parsing.html
-As such, using reqparse comes with a variety of subtle bugs that effect
-both the main function of the code and testing
-    see above
-    and
-    reqparse throws errors when attempting to test with Flask's
-    test_request_context() method
-They recommend using the `marshmallow` library, but do not provide documentation
-on how to do so, and it does not seem obvious how to adapt marshmallow
-to this task given the project's documentation
-    see:
-    https://marshmallow.readthedocs.io/en/stable/index.html
-Thus, since our needs are simple for this application, such parsing has been
-handled manually
-'''
 
 #custom exception for HTTP error 507
 from werkzeug.exceptions import HTTPException
@@ -60,15 +63,12 @@ class InsufficientStorage(HTTPException):
     code = 507
     description = 'Insufficient Storage'
 
-from Authorization_Handler import Authorization_Handler
-ah = Authorization_Handler(db)
-
 from flask_restx import Resource
-@api.route('/log')
+@_api.route('/log')
 class Main(Resource):
     #apply the rate limiter to each handler
     #see: https://flask-limiter.readthedocs.io/en/stable/recipes.html#using-flask-pluggable-views
-    decorators = [limiter.limit("1/second")]
+    decorators = [_limiter.limit("1/second")]
 
     def post(self):
         from flask import request
@@ -90,19 +90,20 @@ class Main(Resource):
         from Authorization_Handler import Missing_Username_Or_Password
         from Authorization_Handler import Bad_Username_Or_Password
         try:
-            authorized = ah.is_authorized( request.authorization )
+            authorized = _ah.is_authorized( request.authorization )
         except Missing_Username_Or_Password:
             abort(401, "Username and password required.")
         except Bad_Username_Or_Password:
-            abort(401, ah.not_authorized_msg)
+            abort(401, _ah.not_authorized_msg)
         else:
             if not authorized:
-                abort(401, ah.not_authorized_msg)
+                abort(401, _ah.not_authorized_msg)
         
         _input = dict(request.form)
         
         if len(_input) == 0: #don't append empty input
-            return to_JSON_safe( db.__repr__() )
+            from Database import to_JSON_safe
+            return to_JSON_safe( _db.__repr__() )
 
         _input["_user"] = request.authorization['username']
 
@@ -116,7 +117,8 @@ class Main(Resource):
             else:
                 raise
 
-        return to_JSON_safe( db.__repr__() )
+        from Database import to_JSON_safe
+        return to_JSON_safe( _db.__repr__() )
 
     def get(self):
         from flask import request
@@ -129,26 +131,25 @@ class Main(Resource):
             if request.content_length > 2 * 1024:
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
                 abort(414)
-        
+
         from Authorization_Handler import Missing_Username_Or_Password
         from Authorization_Handler import Bad_Username_Or_Password
         try:
-            authorized = ah.is_authorized( request.authorization )
+            authorized = _ah.is_authorized( request.authorization )
         except Missing_Username_Or_Password:
             abort(401, "Username and password required.")
         except Bad_Username_Or_Password:
-            abort(401, ah.not_authorized_msg)
+            abort(401, _ah.not_authorized_msg)
         else:
             if not authorized:
-                abort(401, ah.not_authorized_msg)
+                abort(401, _ah.not_authorized_msg)
 
         search_args = dict(request.form)
 
         #if no query, then return the entire database
         if len(search_args) == 0:
-            return to_JSON_safe( db.__repr__() )
+            from Database import to_JSON_safe
+            return to_JSON_safe( _db.__repr__() )
 
-        return to_JSON_safe( db.search(search_args) )
-
-if __name__ == '__main__':
-    app.run(debug=_DEBUG)
+        from Database import to_JSON_safe
+        return to_JSON_safe( _db.search(search_args) )
