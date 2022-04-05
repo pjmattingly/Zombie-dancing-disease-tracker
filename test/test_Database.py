@@ -1,6 +1,7 @@
 import pytest
 
-from app import Database
+from Database import Database
+from Database import Bad_Username_Or_Password
 
 test_db = None
 
@@ -25,6 +26,8 @@ class Test__init__:
         Database(tmp_path)
         assert True
 
+#TODO, change to add_user()
+'''
 class Test_add_password:
     def test1(self, setup_database):
         res = test_db.get_passwords()
@@ -36,34 +39,67 @@ class Test_add_password:
         res = test_db.get_passwords()
 
         assert len(res) == 1
+'''
 
-class Test_create_password:
+class Test_add_user:
     def test1(self, setup_database):
-        res = test_db._create_password("test")
+        user_records = test_db._user_table.all()
 
-        assert isinstance(res, str)
+        assert len(user_records) == 0
 
-class Test_get_passwords:
-    def test1(self, setup_database):
-        test_db.add_password("test")
-        res = test_db._get_passwords()
+        test_db.add_user("test", "test")
 
-        assert isinstance(res, list)
-        assert len(res) == 1
+        user_records = test_db._user_table.all()
 
-class Test_check_password:
-    def test1(self, setup_database):
-        test_db.add_password("test")
-        res = test_db._check_password("some fake password", test_db._get_passwords())
-
-        assert res == False
+        assert len(user_records) == 1
 
     def test2(self, setup_database):
-        test_db.add_password("test")
-        res = test_db._check_password("test", test_db._get_passwords())
+        from Database import Bad_Username_Or_Password
+        with pytest.raises(Bad_Username_Or_Password) as excinfo:
+            test_db.add_user("", "test")
 
-        assert res == True
+    def test3(self, setup_database):
+        from Database import Bad_Username_Or_Password
+        with pytest.raises(Bad_Username_Or_Password) as excinfo:
+            test_db.add_user("test", "")
 
+    def test4(self, setup_database):
+        from Database import Bad_Username_Or_Password
+        with pytest.raises(Bad_Username_Or_Password) as excinfo:
+            test_db.add_user("", "")
+
+class Test_username_exists:
+    def test1(self, setup_database):
+        test_db.add_user("test", "test")
+
+        assert test_db._username_exists("test")
+
+    def test2(self, setup_database):
+        test_db.add_user("test", "test")
+
+        assert not test_db._username_exists("some other username")
+
+class Test_username_has_password:
+    def test1(self, setup_database):
+        test_db.add_user("test", "test")
+
+        assert test_db.username_has_password("test", "test")
+
+    def test2(self, setup_database):
+        test_db.add_user("test", "test")
+
+        assert not test_db.username_has_password("test", "some bad password")
+
+    def test3(self, setup_database):
+        test_db.add_user("test", "test")
+
+        from Database import No_Such_User
+        with pytest.raises(No_Such_User) as excinfo:
+            test_db.username_has_password(
+                "some bad username", "some bad password"
+            )
+
+#TODO, add checks for validating input
 class Test_append:
     def test1(self, setup_database):
         res = test_db.__repr__()
@@ -93,24 +129,12 @@ class Test_append:
 
         assert len(set_timestamps) == 2 #all unique timestamps
 
-class Test__repr__:
-    def test1(self, setup_database):
-        res = test_db.__repr__()
+    def test3(self, setup_database):
+        sample_row = {"data": ""}
 
-        assert isinstance(res, list)
-        assert len(res) == 0
-
-    def test2(self, setup_database):
-        sample_row = {"data": "some stored data 1"}
-        res = test_db.append( sample_row )
-
-        import time
-        time.sleep(.1) #add a small delay to make sure timestamps are unique
-
-        sample_row = {"data": "some stored data 2"}
-        res = test_db.append( sample_row )
-
-        assert res[0]["_timestamp"] < res[1]["_timestamp"]
+        from Database import Malformed_Input
+        with pytest.raises(Malformed_Input) as excinfo:
+            test_db.append( sample_row )
 
 class Test_escape_input:
     def test1(self, setup_database):
@@ -141,11 +165,30 @@ class Test_escape_input:
         assert '&lt;b&gt;' in k #<b>
         assert '&lt;\x08&gt;' in k #<\b>
 
+class Test_validate_input:
+    def test1(self, setup_database):
+        sample_row = {"data": ""}
+
+        from Database import Malformed_Input
+        with pytest.raises(Malformed_Input) as excinfo:
+            test_db._validate_input( sample_row )
+
+    def test2(self, setup_database):
+        sample_row = {"": "some value"}
+
+        from Database import Malformed_Input
+        with pytest.raises(Malformed_Input) as excinfo:
+            test_db._validate_input( sample_row )
+
+    def test3(self, setup_database):
+        sample_row = {"": ""}
+
+        from Database import Malformed_Input
+        with pytest.raises(Malformed_Input) as excinfo:
+            test_db._validate_input( sample_row )
+
 class Test_search:
     def test1(self, setup_database):
-        #sample_row = {"data": "some stored data"}
-        #res = test_db.append( sample_row )
-
         res = test_db.search({})
 
         assert len(res) == 0
@@ -250,3 +293,41 @@ class Test_check_disk_usage:
             assert e.errno == errno.ENOSPC
         else:
             assert False
+
+class Test__repr__:
+    def test1(self, setup_database):
+        res = test_db.__repr__()
+
+        assert isinstance(res, list)
+        assert len(res) == 0
+
+    def test2(self, setup_database):
+        sample_row = {"data": "some stored data 1"}
+        res = test_db.append( sample_row )
+
+        import time
+        time.sleep(.1) #add a small delay to make sure timestamps are unique
+
+        sample_row = {"data": "some stored data 2"}
+        res = test_db.append( sample_row )
+
+        assert res[0]["_timestamp"] < res[1]["_timestamp"]
+
+class Test_to_JSON_safe:
+    def test1(self, setup_database):
+        sample_row = {"data": "some stored data 1"}
+        res1 = test_db.append( sample_row )
+
+        res2 = test_db.__repr__()
+
+        with pytest.raises(TypeError) as excinfo:
+            import json
+            json.dumps(res2)
+
+        from Database import to_JSON_safe
+        res3 = to_JSON_safe(res2)
+
+        import json
+        json.dumps(res3)
+
+        assert True

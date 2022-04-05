@@ -4,6 +4,9 @@ class Malformed_Input(Exception):
         m = 'Malformed input. Input should be of the form: -d "key=value"'
         super().__init__(m)
 
+class Bad_Username_Or_Password(Exception): pass
+class No_Such_User(Exception): pass
+
 class Database:
     def __init__(self, path=None):
         from pathlib import Path
@@ -36,6 +39,11 @@ class Database:
         self._data_table = self._db.table('data')
 
     def add_user(self, username, password):
+        if (len(username) == 0) or (len(password) == 0):
+            raise Bad_Username_Or_Password()
+
+        #TODO, checking for duplicate username and throwing
+
         #hash a plain-text password for storage
         #see: https://werkzeug.palletsprojects.com/en/2.1.x/utils/#werkzeug.security.generate_password_hash
         from werkzeug.security import generate_password_hash
@@ -44,7 +52,9 @@ class Database:
         from flask import escape
         self._user_table.insert({escape(username): _p})
 
-    def username_exists(self, username):
+    def username_exists(self, username): return self._username_exists(username)
+    
+    def _username_exists(self, username):
         from flask import escape
         _username = escape(username)
 
@@ -54,6 +64,9 @@ class Database:
     def username_has_password(self, username, password):
         from flask import escape
         _username = escape(username)
+
+        if not self._username_exists(_username):
+            raise No_Such_User()
 
         for row in self._user_table.all():
             _u = list(row.keys())[0]
