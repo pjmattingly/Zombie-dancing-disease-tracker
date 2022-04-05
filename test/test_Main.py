@@ -111,6 +111,33 @@ class Test_post:
 
     from Database import Database
     @patch.object(Database, 'append')
+    @patch.object(Database, '__repr__')
+    def test_no_data(self, mock_repr, mock_append, monkeypatch):
+        from unittest.mock import MagicMock
+        mock_self = MagicMock()
+
+        def mock_is_authorized(self, request_authorization):
+            return True
+
+        from Authorization_Handler import Authorization_Handler
+        monkeypatch.setattr(
+            Authorization_Handler, "is_authorized", mock_is_authorized
+            )
+
+        with _app.test_request_context(
+            "/log", method="POST", data={}
+        ):
+            from flask import request
+            request.authorization = {'username' : "test", 'password' : "test"}
+
+            res = Main.post(mock_self)
+
+        mock_append.assert_not_called()
+        mock_repr.assert_called()
+        assert len(res) == 0
+
+    from Database import Database
+    @patch.object(Database, 'append')
     def test_out_of_space(self, mock_append, monkeypatch):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
