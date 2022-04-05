@@ -1,5 +1,11 @@
 _DEBUG = True
 
+class Malformed_Input(Exception):
+    #see: https://stackoverflow.com/questions/1319615/proper-way-to-declare-custom-exceptions-in-modern-python
+    def __init__(self):
+        m = 'Malformed input. Input should be of the form: -d "key=value"'
+        super().__init__(m)
+
 class Database:
     def __init__(self, path=None):
         from pathlib import Path
@@ -69,6 +75,8 @@ class Database:
 
         new_row = self._escape_input(row)
 
+        self._validate_input(new_row)
+
         from datetime import datetime
         now = datetime.now(tz=None)
 
@@ -86,6 +94,15 @@ class Database:
             _v = escape(row[k])
             res[_k] = _v
         return res
+
+    def _validate_input(self, row):
+        for k in row.keys():
+            if len(k) == 0:
+                raise Malformed_Input()
+            if len(row[k]) == 0:
+                raise Malformed_Input()
+
+        return row
 
     def search(self, q):
         safe_query = self._escape_input(q)
@@ -282,13 +299,19 @@ class Main(Resource):
                 abort(401, ah.not_authorized_msg)
         
         _input = dict(request.form)
+        
+        if len(_input) == 0: #don't append empty input
+            return to_JSON_safe( db.__repr__() )
+
+        _input["_user"] = request.authorization['username']
 
         try:
             db.append( _input )
         except OSError as e:
             import errno
             if ( str(errno.ENOSPC) == str(e) ):
-                raise InsufficientStorage('Could not append to the database as out of storage.')
+                m = 'Could not append to the database as out of storage.'
+                raise InsufficientStorage(m)
             else:
                 raise
 
