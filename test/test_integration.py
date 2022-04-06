@@ -11,12 +11,12 @@ import pytest
 test_server = None
 
 @pytest.fixture
-def setup_server():
+def setup_server(tmp_path):
     from pathlib import Path
-    app_path = Path.cwd() / "app.py"
+    app_path = Path.cwd() / "main.py"
 
     if not app_path.exists():
-        raise #can't find "app.py" for testing
+        raise #can't find main entry point for testing
 
     import shutil
     python_path = shutil.which("python")
@@ -24,9 +24,10 @@ def setup_server():
     if python_path is None:
         raise #can't find Python
 
+    #start the server and save the database to a temporary path for easy cleanup
     global test_server
     import subprocess
-    cmd = [ python_path, str(app_path) ]
+    cmd = [ python_path, str(app_path), str(tmp_path.resolve()) ]
     test_server = subprocess.Popen(cmd)
 
     #wait for server to start

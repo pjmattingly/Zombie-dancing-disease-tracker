@@ -108,7 +108,7 @@ class Main(Resource):
         _input["_user"] = request.authorization['username']
 
         try:
-            db.append( _input )
+            _db.append( _input )
         except OSError as e:
             import errno
             if ( str(errno.ENOSPC) == str(e) ):

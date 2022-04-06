@@ -1,12 +1,36 @@
 import pytest
 from unittest.mock import patch
-from app import Main
+from Flask_app import Main
 
 from flask import Flask
 _app = Flask(__name__)
 
+test_db = None
+
+@pytest.fixture
+def setup_database(tmp_path):
+    from Database import Database
+    global test_db
+    test_db = Database(tmp_path)
+
+def teardown_database():
+    global test_db
+    test_db = None
+
+@pytest.fixture
+def setup_flask_app(setup_database):
+    import Flask_app as fa
+    fa._db = test_db
+
+    from Authorization_Handler import Authorization_Handler
+    fa._ah = Authorization_Handler(fa._db)
+
+    yield
+
+    teardown_database()
+
 class Test_post:
-    def test_request_too_large(self, monkeypatch):
+    def test_request_too_large(self, setup_flask_app, monkeypatch):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -18,7 +42,7 @@ class Test_post:
             with pytest.raises(RequestURITooLarge) as excinfo:
                 Main.post(mock_self)
 
-    def test_no_password(self):
+    def test_no_password(self, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -31,7 +55,11 @@ class Test_post:
 
             assert "required" in str(excinfo.value)
 
-    def test_bad_password(self, monkeypatch):
+    #DEBUG
+    #def test_DEBUG(self):
+    #    pytest.exit("DEBUG")
+
+    def test_bad_password(self, setup_flask_app, monkeypatch):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -56,7 +84,7 @@ class Test_post:
 
             assert "Incorrect" in str(excinfo.value)
 
-    def test_wrong_password(self, monkeypatch):
+    def test_wrong_password(self, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -83,7 +111,7 @@ class Test_post:
     from Database import Database
     @patch.object(Database, 'append')
     @patch.object(Database, '__repr__')
-    def test_good_append(self, mock_repr, mock_append, monkeypatch):
+    def test_good_append(self, mock_repr, mock_append, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -112,7 +140,7 @@ class Test_post:
     from Database import Database
     @patch.object(Database, 'append')
     @patch.object(Database, '__repr__')
-    def test_no_data(self, mock_repr, mock_append, monkeypatch):
+    def test_no_data(self, mock_repr, mock_append, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -138,7 +166,7 @@ class Test_post:
 
     from Database import Database
     @patch.object(Database, 'append')
-    def test_out_of_space(self, mock_append, monkeypatch):
+    def test_out_of_space(self, mock_append, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -159,13 +187,13 @@ class Test_post:
             from flask import request
             request.authorization = {'username' : "test", 'password' : "test"}
 
-            from app import InsufficientStorage
+            from Flask_app import InsufficientStorage
             with pytest.raises(InsufficientStorage) as excinfo:
                 Main.post(mock_self)
 
     from Database import Database
     @patch.object(Database, 'append')
-    def test_other_OSError(self, mock_append, monkeypatch):
+    def test_other_OSError(self, mock_append, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -192,7 +220,7 @@ class Test_post:
 
     from Database import Database
     @patch.object(Database, 'append')
-    def test_other_error(self, mock_append, monkeypatch):
+    def test_other_error(self, mock_append, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -217,7 +245,7 @@ class Test_post:
                 Main.post(mock_self)
 
 class Test_get:
-    def test_request_too_large(self, monkeypatch):
+    def test_request_too_large(self, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -228,7 +256,7 @@ class Test_get:
             with pytest.raises(RequestURITooLarge) as excinfo:
                 Main.get(mock_self)
 
-    def test_no_password(self):
+    def test_no_password(self, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -241,7 +269,7 @@ class Test_get:
 
             assert "required" in str(excinfo.value)
 
-    def test_bad_password(self, monkeypatch):
+    def test_bad_password(self, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -266,7 +294,7 @@ class Test_get:
 
             assert "Incorrect" in str(excinfo.value)
 
-    def test_wrong_password(self, monkeypatch):
+    def test_wrong_password(self, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -292,7 +320,7 @@ class Test_get:
 
     from Database import Database
     @patch.object(Database, '__repr__')
-    def test_no_search(self, mock_repr, monkeypatch):
+    def test_no_search(self, mock_repr, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
@@ -313,7 +341,7 @@ class Test_get:
 
     from Database import Database
     @patch.object(Database, 'search')
-    def test_search(self, mock_search, monkeypatch):
+    def test_search(self, mock_search, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
         mock_self = MagicMock()
 
