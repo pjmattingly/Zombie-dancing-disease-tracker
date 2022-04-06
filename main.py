@@ -1,4 +1,4 @@
-def init():
+def _parse_input():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -7,21 +7,30 @@ def init():
 
     args = parser.parse_args()
 
+    return {"database_path": args.database_path}
+
+def _get_db_path(args):
     from pathlib import Path
     db_path = Path.cwd()
 
-    if not args.database_path is None:
-        #db_path
+    if not args["database_path"] is None:
         from pathlib import Path
-        _path = Path(args.database_path)
+        _path = Path(args["database_path"])
 
         if not _path.exists():
             raise OSError(f"Path not found: {_path}")
 
         db_path = _path.resolve()
 
+    return db_path
+
+def init():
+    args = _parse_input()
+    db_path = _get_db_path(args)
+
     from Database import Database as DB
     db = DB(db_path)
+
     return db
 
 if __name__ == '__main__':

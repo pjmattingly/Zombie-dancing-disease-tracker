@@ -360,6 +360,18 @@ class Test_get:
 
         mock_search.assert_called_with({"some key": "some data"})
 
-    #DEBUG
-    #def test_done(self):
-    #    pytest.exit("DEBUG")
+class Test_run:
+    def test_1(self, setup_database):
+        from unittest.mock import MagicMock
+        import Flask_app
+        Flask_app._app = MagicMock()
+
+        from Flask_app import run
+        run(test_db)
+
+        assert not Flask_app._db is None
+        assert not Flask_app._ah is None
+
+        Flask_app._app.run.assert_called()
+
+        teardown_database()

@@ -1,17 +1,15 @@
 import pytest
 
-#TODO
-#We should spin up the server in another script that times out waiting for
-#input, rather than here in the testing script
-#As it is we risk leaving a running server orphaned if the testing dies
-
-#TODO
-#replace these `raise`s with proper exceptions
-
-test_server = None
+from xprocess import ProcessStarter
+#handles starting up the server in the background and ensuring cleanup
+#and termination post-testing
+#see: https://github.com/pytest-dev/pytest-xprocess
 
 @pytest.fixture
-def setup_server(tmp_path):
+def setup_server(xprocess, tmp_path):
+    #TODO
+    #replace these `raise`s with proper exceptions
+    
     from pathlib import Path
     app_path = Path.cwd() / "main.py"
 
@@ -24,27 +22,29 @@ def setup_server(tmp_path):
     if python_path is None:
         raise #can't find Python
 
-    #start the server and save the database to a temporary path for easy cleanup
-    global test_server
-    import subprocess
-    cmd = [ python_path, str(app_path), str(tmp_path.resolve()) ]
-    test_server = subprocess.Popen(cmd)
+    class Starter(ProcessStarter):
+        pattern = "" #required for Starter to be instantiated
+        
+        timeout = 5 #wait for the process to start ~5 seconds
 
-    #wait for server to start
-    while True:
-        if not test_server is None:
-            first_check = (test_server.returncode is None)
-            second_check = (not test_server.pid is None) and \
-                (test_server.pid >= 0)
-            if first_check and second_check:
-                break
-        import time
-        time.sleep(.1)
-    
+        # command to start process
+        args = [ python_path, str(app_path), str(tmp_path.resolve()) ]
+
+        terminate_on_interrupt = True
+
+        def startup_check(self):
+            res = run_curl("--user test:test -X GET")
+
+            first_check = isinstance(res, list)
+            second_check = (len(res) == 0)
+
+            return (first_check and second_check)
+
+    logfile = xprocess.ensure("setup_server", Starter)
+
     yield
 
-    test_server.terminate()
-    test_server = None
+    xprocess.getinfo("setup_server").terminate()
 
 curl_path = None
 
@@ -157,5 +157,25 @@ class Test_integration:
         assert isinstance(res, list)
         assert len(res) == 1
 
-        print(res)
-        raise
+        keys = list(res[0].keys())
+
+        assert "_timestamp" in keys
+        assert "_user" in keys
+        assert "data" in keys
+
+        assert "new_data" in res[0]["data"]
+        assert "test" in res[0]["_user"]
+
+    def test_write_and_read(self, curl_prep, setup_server):
+        #example: [{'data': 'new_data', '_user': 'test', '_timestamp': '2022-04-05T01:50:57.528273'}]
+        res1 = run_curl("--user test:test -d 'data=new_data' -X POST")
+
+        res2 = run_curl("--user test:test -X GET")
+
+        assert isinstance(res2, list)
+        assert len(res2) == 1
+
+        keys = list(res2[0].keys())
+
+        assert "data" in keys
+        assert "new_data" in res2[0]["data"]
