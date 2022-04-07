@@ -43,6 +43,25 @@ def run(db, _debug = False):
 
     _app.run(debug=_debug)
 
+'''
+TODO
+HTTPS
+It would be best if the over-the-wire content was encrypted
+    e.g., password in plaintext are bad
+there seems to be ways of making Flask do HTTPS, but they seem to be poorly
+documented
+    see:
+    https://stackoverflow.com/questions/29458548/can-you-add-https-functionality-to-a-python-flask-web-server
+    https://medium.com/@timetraveller_x/setting-up-ssl-on-iis-with-python-flask-8d21847a3594
+    https://stackoverflow.com/questions/49678561/enable-https-on-werkzeug-using-key-cert-as-strings
+So we may want to switch to a different router/framework/web server
+with better support for HTTPS
+    e.g., https://docs.djangoproject.com/en/4.0/topics/security/
+Then also HTTPs for cURL seemed to be more difficult than was warranted for
+this exercise
+    see:
+    https://stackoverflow.com/questions/10079707/https-connection-using-curl-from-command-line
+'''
 from flask import Flask
 _app = Flask(__name__)
 

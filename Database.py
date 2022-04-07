@@ -7,6 +7,18 @@ class Malformed_Input(Exception):
 class Bad_Username_Or_Password(Exception): pass
 class No_Such_User(Exception): pass
 
+'''
+TODO
+Async database operations
+Tinydb is easy to work with, but doesn't allow async operations out of the box
+instead we should use a more robust backend, like Redis
+Redis makes async operations easy, as it comes bunbled in their python library
+    see:
+    https://redis.io/
+    https://github.com/redis/redis-py
+    https://medium.com/swlh/building-rest-api-backed-by-redis-ae8ff4818460
+'''
+
 class Database:
     def __init__(self, path=None):
         from pathlib import Path
