@@ -9,7 +9,7 @@ from xprocess import ProcessStarter
 def setup_server(xprocess, tmp_path):
     #TODO
     #replace these `raise`s with proper exceptions
-    
+
     from pathlib import Path
     app_path = Path.cwd() / "main.py"
 
@@ -167,7 +167,6 @@ class Test_integration:
         assert "test" in res[0]["_user"]
 
     def test_write_and_read(self, curl_prep, setup_server):
-        #example: [{'data': 'new_data', '_user': 'test', '_timestamp': '2022-04-05T01:50:57.528273'}]
         res1 = run_curl("--user test:test -d 'data=new_data' -X POST")
 
         res2 = run_curl("--user test:test -X GET")
@@ -179,3 +178,39 @@ class Test_integration:
 
         assert "data" in keys
         assert "new_data" in res2[0]["data"]
+
+    def test_write_and_search(self, curl_prep, setup_server):
+        res1 = run_curl("--user test:test -d 'data=new_data' -X POST")
+
+        res2 = run_curl("--user test:test -d 'data=new_data' -X GET")
+
+        assert isinstance(res2, list)
+        assert len(res2) == 1
+
+        keys = list(res2[0].keys())
+
+        assert "data" in keys
+        assert "new_data" in res2[0]["data"]
+
+    def test_write_and_bad_search(self, curl_prep, setup_server):
+        res1 = run_curl("--user test:test -d 'data=new_data' -X POST")
+
+        res2 = run_curl("--user test:test -d 'data=some_fake_data' -X GET")
+
+        assert isinstance(res2, list)
+        assert len(res2) == 0
+
+    def test_bad_verb(self, curl_prep, setup_server):
+        res1 = run_curl("--user test:test -X DELETE")
+
+        assert isinstance(res1, dict)
+        assert len(res1) == 1
+        assert "method is not allowed" in list( res1.values() )[0]
+
+    def test_duplicate_data(self, curl_prep, setup_server):
+        run_curl("--user test:test -d 'data=new_data' -X POST")
+        run_curl("--user test:test -d 'data=new_data' -X POST")
+
+        res1 = run_curl("--user test:test -X GET")
+
+        assert len(res1) == 2

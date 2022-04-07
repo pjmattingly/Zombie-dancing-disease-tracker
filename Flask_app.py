@@ -68,7 +68,7 @@ from flask_restx import Resource
 class Main(Resource):
     #apply the rate limiter to each handler
     #see: https://flask-limiter.readthedocs.io/en/stable/recipes.html#using-flask-pluggable-views
-    decorators = [_limiter.limit("1/second")]
+    decorators = [_limiter.limit("20/second")]
 
     def post(self):
         from flask import request
