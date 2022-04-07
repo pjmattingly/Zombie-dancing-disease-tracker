@@ -214,3 +214,15 @@ class Test_integration:
         res1 = run_curl("--user test:test -X GET")
 
         assert len(res1) == 2
+
+    #TODO, this should cause an error: 
+    #Database.Malformed_Input: Malformed input. Input should be of the form: -d "key=value"
+    #but the current setup doesn't allow us to read such an error
+    #need better error reporting from the server in future
+    def test_binary_data(self, curl_prep, setup_server):
+        from pathlib import Path
+        pic_path = Path("./data/61bVaOK46tL._AC_SL1000_.jpg")
+        cmd = f"--user test:test --data-binary '@{pic_path.resolve()}' -X POST"
+        res = run_curl(cmd)
+
+        assert True #TODO

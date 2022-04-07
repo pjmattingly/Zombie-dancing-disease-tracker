@@ -12,7 +12,7 @@ TODO
 Async database operations
 Tinydb is easy to work with, but doesn't allow async operations out of the box
 instead we should use a more robust backend, like Redis
-Redis makes async operations easy, as it comes bunbled in their python library
+Redis makes async operations easy, as it comes bundled in their python library
     see:
     https://redis.io/
     https://github.com/redis/redis-py

@@ -1,6 +1,14 @@
 class Missing_Username_Or_Password(Exception): pass
 class Bad_Username_Or_Password(Exception): pass
 
+'''
+TODO
+enable support for digest authentication
+this requires a plugin for Flask
+    see:
+    https://flask-httpauth.readthedocs.io/en/latest/
+'''
+
 class Authorization_Handler:
     def __init__(self, database):
         self._db = database

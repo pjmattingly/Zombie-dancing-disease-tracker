@@ -29,6 +29,51 @@
     Thus, since our needs are simple for this application, such parsing has been
     handled manually
 '''
+
+'''
+TODO
+    if we need to support larger upload/POST sizes for logs we can implement
+    support for file uploading, as an alternative to using POST
+    or we can make more elaborate use of the --form option
+        see: https://flask.palletsprojects.com/en/2.1.x/patterns/fileuploads/
+'''
+
+'''
+BUG
+    Requests without a valid content_length causes curl to hang; likely due
+    to an issue with Flask or Werkzeug
+        see:
+        https://github.com/pallets/flask/issues/1289
+    avoid using --ignore-content-length with curl
+'''
+'''
+TODO
+    HTTPS
+    It would be best if the over-the-wire content was encrypted
+    there seems to be ways of making Flask do HTTPS, but they seem to be poorly
+    documented
+        see:
+        https://stackoverflow.com/questions/29458548/can-you-add-https-functionality-to-a-python-flask-web-server
+        https://medium.com/@timetraveller_x/setting-up-ssl-on-iis-with-python-flask-8d21847a3594
+        https://stackoverflow.com/questions/49678561/enable-https-on-werkzeug-using-key-cert-as-strings
+    So we may want to switch to a different router/framework/web server
+    with better support for HTTPS
+        e.g., https://docs.djangoproject.com/en/4.0/topics/security/
+    Then also HTTPs for cURL seemed to be more difficult than was warranted for
+    this exercise
+        see:
+        https://stackoverflow.com/questions/10079707/https-connection-using-curl-from-command-line
+'''
+'''
+TODO
+    JSON
+    Adding JSON support seems trivial, but seemed to more complex than
+    was arranted for this exercise
+    It would be useful to have the server accept JSON input as well as
+    plain-text
+        see:
+        https://flask.palletsprojects.com/en/2.1.x/api/#module-flask.json
+'''
 _db = None
 _ah = None
 
@@ -43,25 +88,6 @@ def run(db, _debug = False):
 
     _app.run(debug=_debug)
 
-'''
-TODO
-HTTPS
-It would be best if the over-the-wire content was encrypted
-    e.g., password in plaintext are bad
-there seems to be ways of making Flask do HTTPS, but they seem to be poorly
-documented
-    see:
-    https://stackoverflow.com/questions/29458548/can-you-add-https-functionality-to-a-python-flask-web-server
-    https://medium.com/@timetraveller_x/setting-up-ssl-on-iis-with-python-flask-8d21847a3594
-    https://stackoverflow.com/questions/49678561/enable-https-on-werkzeug-using-key-cert-as-strings
-So we may want to switch to a different router/framework/web server
-with better support for HTTPS
-    e.g., https://docs.djangoproject.com/en/4.0/topics/security/
-Then also HTTPs for cURL seemed to be more difficult than was warranted for
-this exercise
-    see:
-    https://stackoverflow.com/questions/10079707/https-connection-using-curl-from-command-line
-'''
 from flask import Flask
 _app = Flask(__name__)
 
@@ -93,11 +119,6 @@ class Main(Resource):
         from flask import request
         from flask import abort
 
-        #TODO
-        #if we need to support larger upload/POST sizes for logs we can implement
-        #support for file uploading, as an alternative to using POST
-        #see: https://flask.palletsprojects.com/en/2.1.x/patterns/fileuploads/
-
         #limit POST requests to ~2GB
         #see: https://stackoverflow.com/questions/2880722/can-http-post-be-limitless
         #see: https://serverfault.com/questions/151090/is-there-a-maximum-size-for-content-of-an-http-post
@@ -127,14 +148,14 @@ class Main(Resource):
         _input["_user"] = request.authorization['username']
 
         try:
-            _db.append( _input )
+            res = _db.append( _input )
         except OSError as e:
             import errno
             if ( str(errno.ENOSPC) == str(e) ):
                 m = 'Could not append to the database as out of storage.'
                 raise InsufficientStorage(m)
             else:
-                raise
+                raise #raise other OSError
 
         from Database import to_JSON_safe
         return to_JSON_safe( _db.__repr__() )
