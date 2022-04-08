@@ -88,8 +88,8 @@ if __name__ == '__main__':
     db = init()
 
     #TEST
-    #_DEBUG = True
-    #db.add_user("test", "test")
+    _DEBUG = True
+    db.add_user("test", "test")
     
     import Flask_app
     #Flask_app.run(db, _DEBUG)

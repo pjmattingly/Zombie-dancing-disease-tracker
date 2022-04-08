@@ -134,6 +134,14 @@ class Main(Resource):
     def post(self):
         """
         A handler function for flask that is called for all POST HTTP requests
+
+        This function allows for inserting new content into the database.
+
+        This function:
+        Checks authentication
+        Returns the entire database if there is no data input
+        Appends username information to successful inserts
+        Attempts to insert in the database and raises errors on issues
         """
 
         from flask import request
@@ -182,7 +190,14 @@ class Main(Resource):
 
     def get(self):
         """
-        A handler function for flask that is called for all GET HTTP requests
+        A handler function for flask that is called for all GET HTTP requests.
+
+        It allows for fetching the database, and searching the database.
+
+        This function:
+        Checks authentication
+        Returns the entire database if there is no data input
+        Returns search results for any data passed.
         """
 
         from flask import request

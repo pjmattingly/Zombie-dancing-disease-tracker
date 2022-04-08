@@ -69,4 +69,7 @@ class Authorization_Handler:
         _u = request_authorization['username']
         _p = request_authorization['password']
 
+        if not self._db.username_exists(_u):
+            raise Bad_Username_Or_Password(self._not_authorized_msg)
+
         return self._db.username_has_password(_u, _p)

@@ -132,6 +132,34 @@ class Test_integration:
 
         assert 'Incorrect username or password' in message
 
+    def test_bad_username_and_password1(self, curl_prep, setup_server):
+        res = run_curl("--user bad:test -X GET")
+
+        message = list(res.values())[0]
+
+        assert 'Incorrect username or password' in message
+
+    def test_bad_username_and_password2(self, curl_prep, setup_server):
+        res = run_curl("--user bad:test -X POST")
+
+        message = list(res.values())[0]
+
+        assert 'Incorrect username or password' in message
+
+    def test_bad_username_and_bad_password1(self, curl_prep, setup_server):
+        res = run_curl("--user bad:bad -X GET")
+
+        message = list(res.values())[0]
+
+        assert 'Incorrect username or password' in message
+
+    def test_bad_username_and_bad_password2(self, curl_prep, setup_server):
+        res = run_curl("--user bad:bad -X POST")
+
+        message = list(res.values())[0]
+
+        assert 'Incorrect username or password' in message
+
     def test_empty_get(self, curl_prep, setup_server):
         res = run_curl("--user test:test -X GET")
 

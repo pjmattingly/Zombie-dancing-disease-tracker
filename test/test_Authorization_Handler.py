@@ -77,3 +77,11 @@ class Test_is_authorized:
         test_db.add_user('test', 'test')
 
         assert not test_ah.is_authorized(test_input)
+
+    def test3(self, setup_auth_handler):
+        test_input = {'username': 'some bad username', 'password': 'test'}
+        test_db.add_user('test', 'test')
+
+        from Authorization_Handler import Bad_Username_Or_Password
+        with pytest.raises(Bad_Username_Or_Password) as excinfo:
+            test_ah.is_authorized(test_input)
