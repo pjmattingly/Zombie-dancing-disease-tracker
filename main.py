@@ -1,3 +1,34 @@
+"""
+An audit log service, built on flask.
+
+usage: main.py [-h] [database_path]
+
+positional arguments:
+  database_path
+
+optional arguments:
+  -h, --help     show this help message and exit
+
+:param database_path: A path indicating where to save the database file.
+                    Defaults to the current directory
+
+----
+
+Client usage:
+
+To list the content of the database:
+
+curl <URL of server>:5000/log --user username:password -X GET
+
+To add data to the database:
+
+curl <URL of server>:5000/log --user username:password --data "<key>=<value>" -X POST
+
+To search the database for records containing <key> -> <value>
+
+curl <URL of server>:5000/log --user username:password --data "<key>=<value>" -X GET
+"""
+
 def _parse_input():
     """
     Contains the logic for parsing command-line input and returns a dictionary

@@ -1,3 +1,13 @@
+"""
+Flask_app module
+
+Defines a flask application for handling HTTP traffic.
+
+run()
+The main entrypoint for the Flask application.
+Starts the flask application running.
+"""
+
 #BUG
 '''
     When accessing `request.json` the following error is returned for all requests:
@@ -7,7 +17,6 @@
     reqparse will implicitly attempt to access request.json, and so a fix
     has been applied to avoid accessing it
 '''
-
 #BUG
 '''
     As per Flask-restx documentation their preferred way of parsing key/value pairs
@@ -29,7 +38,6 @@
     Thus, since our needs are simple for this application, such parsing has been
     handled manually
 '''
-
 '''
 TODO
     if we need to support larger upload/POST sizes for logs we can implement
@@ -37,7 +45,6 @@ TODO
     or we can make more elaborate use of the --form option
         see: https://flask.palletsprojects.com/en/2.1.x/patterns/fileuploads/
 '''
-
 '''
 BUG
     Requests without a valid content_length causes curl to hang; likely due
@@ -105,17 +112,30 @@ _limiter = Limiter(
 #custom exception for HTTP error 507
 from werkzeug.exceptions import HTTPException
 class InsufficientStorage(HTTPException):
+    """
+    A class symbolizing the HTTP error 507 (Insufficient Storage)
+    used in Main
+    """
     code = 507
     description = 'Insufficient Storage'
 
 from flask_restx import Resource
 @_api.route('/log')
 class Main(Resource):
+    """
+    A class defining the behaviour of the Flask application
+    Not meant for instantiation, but to configure Flask for this application
+    """
+
     #apply the rate limiter to each handler
     #see: https://flask-limiter.readthedocs.io/en/stable/recipes.html#using-flask-pluggable-views
     decorators = [_limiter.limit("20/second")]
 
     def post(self):
+        """
+        A handler function for flask that is called for all POST HTTP requests
+        """
+
         from flask import request
         from flask import abort
 
@@ -161,6 +181,10 @@ class Main(Resource):
         return to_JSON_safe( _db.__repr__() )
 
     def get(self):
+        """
+        A handler function for flask that is called for all GET HTTP requests
+        """
+
         from flask import request
         from flask import abort
 
