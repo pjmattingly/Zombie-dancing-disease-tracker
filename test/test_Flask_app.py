@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from Flask_app import Main
+from src.Flask_app import Main
 
 from flask import Flask
 _app = Flask(__name__)
@@ -9,7 +9,7 @@ test_db = None
 
 @pytest.fixture
 def setup_database(tmp_path):
-    from Database import Database
+    from src.Database import Database
     global test_db
     test_db = Database(tmp_path)
 
@@ -19,10 +19,10 @@ def teardown_database():
 
 @pytest.fixture
 def setup_flask_app(setup_database):
-    import Flask_app as fa
+    import src.Flask_app as fa
     fa._db = test_db
 
-    from Authorization_Handler import Authorization_Handler
+    from src.Authorization_Handler import Authorization_Handler
     fa._ah = Authorization_Handler(fa._db)
 
     yield
@@ -64,10 +64,10 @@ class Test_post:
         mock_self = MagicMock()
 
         def mock_is_authorized(self, request_authorization):
-            from Authorization_Handler import Bad_Username_Or_Password
+            from src.Authorization_Handler import Bad_Username_Or_Password
             raise Bad_Username_Or_Password()
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -91,7 +91,7 @@ class Test_post:
         def mock_is_authorized(self, request_authorization):
             return False
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -108,7 +108,7 @@ class Test_post:
 
             assert "Incorrect" in str(excinfo.value)
 
-    from Database import Database
+    from src.Database import Database
     @patch.object(Database, 'append')
     @patch.object(Database, '__repr__')
     def test_good_append(self, mock_repr, mock_append, monkeypatch, setup_flask_app):
@@ -118,7 +118,7 @@ class Test_post:
         def mock_is_authorized(self, request_authorization):
             return True
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -137,7 +137,7 @@ class Test_post:
         assert "some key" in called_with
         assert "some data" in called_with["some key"]
 
-    from Database import Database
+    from src.Database import Database
     @patch.object(Database, 'append')
     @patch.object(Database, '__repr__')
     def test_no_data(self, mock_repr, mock_append, monkeypatch, setup_flask_app):
@@ -147,7 +147,7 @@ class Test_post:
         def mock_is_authorized(self, request_authorization):
             return True
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -164,7 +164,7 @@ class Test_post:
         mock_repr.assert_called()
         assert len(res) == 0
 
-    from Database import Database
+    from src.Database import Database
     @patch.object(Database, 'append')
     def test_out_of_space(self, mock_append, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
@@ -173,7 +173,7 @@ class Test_post:
         def mock_is_authorized(self, request_authorization):
             return True
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -187,11 +187,11 @@ class Test_post:
             from flask import request
             request.authorization = {'username' : "test", 'password' : "test"}
 
-            from Flask_app import InsufficientStorage
+            from src.Flask_app import InsufficientStorage
             with pytest.raises(InsufficientStorage) as excinfo:
                 Main.post(mock_self)
 
-    from Database import Database
+    from src.Database import Database
     @patch.object(Database, 'append')
     def test_other_OSError(self, mock_append, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
@@ -200,7 +200,7 @@ class Test_post:
         def mock_is_authorized(self, request_authorization):
             return True
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -218,7 +218,7 @@ class Test_post:
 
         assert str(0) in str(excinfo.value)
 
-    from Database import Database
+    from src.Database import Database
     @patch.object(Database, 'append')
     def test_other_error(self, mock_append, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
@@ -227,7 +227,7 @@ class Test_post:
         def mock_is_authorized(self, request_authorization):
             return True
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -274,10 +274,10 @@ class Test_get:
         mock_self = MagicMock()
 
         def mock_is_authorized(self, request_authorization):
-            from Authorization_Handler import Bad_Username_Or_Password
+            from src.Authorization_Handler import Bad_Username_Or_Password
             raise Bad_Username_Or_Password()
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -301,7 +301,7 @@ class Test_get:
         def mock_is_authorized(self, request_authorization):
             return False
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -318,7 +318,7 @@ class Test_get:
 
             assert "Incorrect" in str(excinfo.value)
 
-    from Database import Database
+    from src.Database import Database
     @patch.object(Database, '__repr__')
     def test_no_search(self, mock_repr, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
@@ -327,7 +327,7 @@ class Test_get:
         def mock_is_authorized(self, request_authorization):
             return True
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -339,7 +339,7 @@ class Test_get:
 
         mock_repr.assert_called()
 
-    from Database import Database
+    from src.Database import Database
     @patch.object(Database, 'search')
     def test_search(self, mock_search, monkeypatch, setup_flask_app):
         from unittest.mock import MagicMock
@@ -348,7 +348,7 @@ class Test_get:
         def mock_is_authorized(self, request_authorization):
             return True
 
-        from Authorization_Handler import Authorization_Handler
+        from src.Authorization_Handler import Authorization_Handler
         monkeypatch.setattr(
             Authorization_Handler, "is_authorized", mock_is_authorized
             )
@@ -363,10 +363,10 @@ class Test_get:
 class Test_run:
     def test_1(self, setup_database):
         from unittest.mock import MagicMock
-        import Flask_app
+        import src.Flask_app as Flask_app
         Flask_app._app = MagicMock()
 
-        from Flask_app import run
+        from src.Flask_app import run
         run(test_db)
 
         assert not Flask_app._db is None

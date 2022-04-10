@@ -1,5 +1,5 @@
 import pytest
-import main
+import src.__main__ as main
 
 class Test_init:
     from unittest.mock import patch

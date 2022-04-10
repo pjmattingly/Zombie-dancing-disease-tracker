@@ -1,7 +1,7 @@
 import pytest
 
-from Database import Database
-from Database import Bad_Username_Or_Password
+from src.Database import Database
+from src.Database import Bad_Username_Or_Password
 
 test_db = None
 
@@ -39,17 +39,17 @@ class Test_add_user:
         assert len(user_records) == 1
 
     def test2(self, setup_database):
-        from Database import Bad_Username_Or_Password
+        from src.Database import Bad_Username_Or_Password
         with pytest.raises(Bad_Username_Or_Password) as excinfo:
             test_db.add_user("", "test")
 
     def test3(self, setup_database):
-        from Database import Bad_Username_Or_Password
+        from src.Database import Bad_Username_Or_Password
         with pytest.raises(Bad_Username_Or_Password) as excinfo:
             test_db.add_user("test", "")
 
     def test4(self, setup_database):
-        from Database import Bad_Username_Or_Password
+        from src.Database import Bad_Username_Or_Password
         with pytest.raises(Bad_Username_Or_Password) as excinfo:
             test_db.add_user("", "")
 
@@ -78,7 +78,7 @@ class Test_username_has_password:
     def test3(self, setup_database):
         test_db.add_user("test", "test")
 
-        from Database import No_Such_User
+        from src.Database import No_Such_User
         with pytest.raises(No_Such_User) as excinfo:
             test_db.username_has_password(
                 "some bad username", "some bad password"
@@ -116,7 +116,7 @@ class Test_append:
     def test3(self, setup_database):
         sample_row = {"data": ""}
 
-        from Database import Malformed_Input
+        from src.Database import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_db.append( sample_row )
 
@@ -153,21 +153,21 @@ class Test_validate_input:
     def test1(self, setup_database):
         sample_row = {"data": ""}
 
-        from Database import Malformed_Input
+        from src.Database import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_db._validate_input( sample_row )
 
     def test2(self, setup_database):
         sample_row = {"": "some value"}
 
-        from Database import Malformed_Input
+        from src.Database import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_db._validate_input( sample_row )
 
     def test3(self, setup_database):
         sample_row = {"": ""}
 
-        from Database import Malformed_Input
+        from src.Database import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_db._validate_input( sample_row )
 
@@ -308,7 +308,7 @@ class Test_to_JSON_safe:
             import json
             json.dumps(res2)
 
-        from Database import to_JSON_safe
+        from src.Database import to_JSON_safe
         res3 = to_JSON_safe(res2)
 
         import json

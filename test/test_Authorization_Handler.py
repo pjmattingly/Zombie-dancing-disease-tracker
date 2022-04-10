@@ -1,6 +1,6 @@
 import pytest
-from Database import Database
-from Authorization_Handler import Authorization_Handler
+from src.Database import Database
+from src.Authorization_Handler import Authorization_Handler
 
 test_ah = None
 test_db = None
@@ -24,35 +24,35 @@ class Test_verify_authorization_present:
     def test1(self, setup_auth_handler):
         test_input = None
 
-        from Authorization_Handler import Missing_Username_Or_Password
+        from src.Authorization_Handler import Missing_Username_Or_Password
         with pytest.raises(Missing_Username_Or_Password) as excinfo:
             test_ah._verify_authorization_present(test_input)
 
     def test2(self, setup_auth_handler):
         test_input = {}
 
-        from Authorization_Handler import Missing_Username_Or_Password
+        from src.Authorization_Handler import Missing_Username_Or_Password
         with pytest.raises(Missing_Username_Or_Password) as excinfo:
             test_ah._verify_authorization_present(test_input)
 
     def test3(self, setup_auth_handler):
         test_input = {'username': '', 'password': 'test'}
 
-        from Authorization_Handler import Bad_Username_Or_Password
+        from src.Authorization_Handler import Bad_Username_Or_Password
         with pytest.raises(Bad_Username_Or_Password) as excinfo:
             test_ah._verify_authorization_present(test_input)
 
     def test4(self, setup_auth_handler):
         test_input = {'username': 'test', 'password': ''}
 
-        from Authorization_Handler import Bad_Username_Or_Password
+        from src.Authorization_Handler import Bad_Username_Or_Password
         with pytest.raises(Bad_Username_Or_Password) as excinfo:
             test_ah._verify_authorization_present(test_input)
 
     def test5(self, setup_auth_handler):
         test_input = {'username': '', 'password': ''}
 
-        from Authorization_Handler import Bad_Username_Or_Password
+        from src.Authorization_Handler import Bad_Username_Or_Password
         with pytest.raises(Bad_Username_Or_Password) as excinfo:
             test_ah._verify_authorization_present(test_input)
 
@@ -82,6 +82,6 @@ class Test_is_authorized:
         test_input = {'username': 'some bad username', 'password': 'test'}
         test_db.add_user('test', 'test')
 
-        from Authorization_Handler import Bad_Username_Or_Password
+        from src.Authorization_Handler import Bad_Username_Or_Password
         with pytest.raises(Bad_Username_Or_Password) as excinfo:
             test_ah.is_authorized(test_input)

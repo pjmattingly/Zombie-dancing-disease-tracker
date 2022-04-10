@@ -90,7 +90,7 @@ def run(db, _debug = False):
 
     _db = db
 
-    from Authorization_Handler import Authorization_Handler
+    from .Authorization_Handler import Authorization_Handler
     _ah = Authorization_Handler(db)
 
     _app.run(debug=_debug)
@@ -155,8 +155,8 @@ class Main(Resource):
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
                 abort(414)
 
-        from Authorization_Handler import Missing_Username_Or_Password
-        from Authorization_Handler import Bad_Username_Or_Password
+        from .Authorization_Handler import Missing_Username_Or_Password
+        from .Authorization_Handler import Bad_Username_Or_Password
         try:
             authorized = _ah.is_authorized( request.authorization )
         except Missing_Username_Or_Password:
@@ -170,7 +170,7 @@ class Main(Resource):
         _input = dict(request.form)
         
         if len(_input) == 0: #don't append empty input
-            from Database import to_JSON_safe
+            from .Database import to_JSON_safe
             return to_JSON_safe( _db.__repr__() )
 
         _input["_user"] = request.authorization['username']
@@ -185,7 +185,7 @@ class Main(Resource):
             else:
                 raise #raise other OSError
 
-        from Database import to_JSON_safe
+        from .Database import to_JSON_safe
         return to_JSON_safe( _db.__repr__() )
 
     def get(self):
@@ -211,8 +211,8 @@ class Main(Resource):
                 #see: https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.15
                 abort(414)
 
-        from Authorization_Handler import Missing_Username_Or_Password
-        from Authorization_Handler import Bad_Username_Or_Password
+        from .Authorization_Handler import Missing_Username_Or_Password
+        from .Authorization_Handler import Bad_Username_Or_Password
         try:
             authorized = _ah.is_authorized( request.authorization )
         except Missing_Username_Or_Password:
@@ -227,8 +227,8 @@ class Main(Resource):
 
         #if no query, then return the entire database
         if len(search_args) == 0:
-            from Database import to_JSON_safe
+            from .Database import to_JSON_safe
             return to_JSON_safe( _db.__repr__() )
 
-        from Database import to_JSON_safe
+        from .Database import to_JSON_safe
         return to_JSON_safe( _db.search(search_args) )
