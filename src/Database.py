@@ -26,12 +26,6 @@ Redis makes async operations easy, as it comes bundled in their python library
     https://medium.com/swlh/building-rest-api-backed-by-redis-ae8ff4818460
 '''
 
-class Malformed_Input(Exception):
-    #see: https://stackoverflow.com/questions/1319615/proper-way-to-declare-custom-exceptions-in-modern-python
-    def __init__(self):
-        m = 'Malformed input. Input should be of the form: -d "key=value"'
-        super().__init__(m)
-
 class Bad_Username_Or_Password(Exception): pass
 class No_Such_User(Exception): pass
 
@@ -187,22 +181,6 @@ class Database:
             _v = escape(row[k])
             res[_k] = _v
         return res
-
-    def _validate_input(self, row):
-        """
-        A function to validate the data in a new row; Raising on empty strings
-        for either key or value.
-
-        :param row: dictionary
-        :return: dictionary
-        """
-        for k in row.keys():
-            if len(k) == 0:
-                raise Malformed_Input()
-            if len(row[k]) == 0:
-                raise Malformed_Input()
-
-        return row
 
     def search(self, q):
         """

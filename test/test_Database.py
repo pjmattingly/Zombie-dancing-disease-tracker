@@ -149,28 +149,6 @@ class Test_escape_input:
         assert '&lt;b&gt;' in k #<b>
         assert '&lt;\x08&gt;' in k #<\b>
 
-class Test_validate_input:
-    def test1(self, setup_database):
-        sample_row = {"data": ""}
-
-        from src.Database import Malformed_Input
-        with pytest.raises(Malformed_Input) as excinfo:
-            test_db._validate_input( sample_row )
-
-    def test2(self, setup_database):
-        sample_row = {"": "some value"}
-
-        from src.Database import Malformed_Input
-        with pytest.raises(Malformed_Input) as excinfo:
-            test_db._validate_input( sample_row )
-
-    def test3(self, setup_database):
-        sample_row = {"": ""}
-
-        from src.Database import Malformed_Input
-        with pytest.raises(Malformed_Input) as excinfo:
-            test_db._validate_input( sample_row )
-
 class Test_search:
     def test1(self, setup_database):
         res = test_db.search({})
