@@ -87,13 +87,14 @@ def init():
 def main():
     db = init()
 
-    #TEST
     _DEBUG = True
-    db.add_user("test", "test")
-    
+
     from . import Flask_app
-    #Flask_app.run(db, _DEBUG)
-    Flask_app.run(db)
+    if _DEBUG:
+        db.add_user("test", "test")
+        Flask_app.run(db, _DEBUG)
+    else:
+        Flask_app.run(db)
 
 if __name__ == '__main__':
     import sys

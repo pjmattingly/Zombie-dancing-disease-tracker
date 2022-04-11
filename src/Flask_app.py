@@ -8,14 +8,20 @@ The main entrypoint for the Flask application.
 Starts the flask application running.
 """
 
+#TODO
+'''
+Run with a proper web server, rather than the integrated development server
+The development server should be fine for the simple testing assocaited
+with this project
+    see:
+    https://flask.palletsprojects.com/en/2.1.x/tutorial/deploy/#run-with-a-production-server
+'''
+
 #BUG
 '''
     When accessing `request.json` the following error is returned for all requests:
         `code 400, message Bad request syntax`
     A fix is to avoid accessing the parameter on `request`
-
-    reqparse will implicitly attempt to access request.json, and so a fix
-    has been applied to avoid accessing it
 '''
 #BUG
 '''
