@@ -156,12 +156,9 @@ class Database:
 
         new_row = self._escape_input(row)
 
-        self._validate_input(new_row)
-
-        from datetime import datetime
-        now = datetime.now(tz=None)
-
-        new_row["_timestamp"] = now
+        from . import Validation_and_Standardization_Handler as vns
+        vns.validate(new_row)
+        new_row = vns.standardize(new_row)
 
         self._data_table.insert( new_row )
 
@@ -250,5 +247,9 @@ def to_JSON_safe(rows):
         from datetime import datetime
         tmp["_timestamp"] = row["_timestamp"].isoformat()
         res.append( tmp )
+
+        if "date_time" in row:
+            if hasattr(row["date_time"], "isoformat"):
+                tmp["date_time"] = row["date_time"].isoformat()
 
     return res

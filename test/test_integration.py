@@ -78,9 +78,20 @@ def run_curl(args):
     import json
     return json.loads( res.stdout.decode() )
 
-class Test_integration:
-    #example: curl http://localhost:5000/log -d "key=test" -X GET
+def make_sample_row():
+    import src.Validation_and_Standardization_Handler as vns1
+    vns2 = vns1.Validation_and_Standardization()
 
+    return {str(k):"some value" for k in vns2._required_keys}
+
+def make_curl_string(row):
+    res = " "
+    for k in row.keys():
+        res += f"-d '{k}={row[k]}'"
+        res += " "
+    return res
+
+class Test_integration:
     def test_bad_end_point(self, curl_prep, setup_server):
         base_args = [curl_path, _url + "some_bad_end_point"]
         base_args.append("-X GET")
@@ -173,14 +184,23 @@ class Test_integration:
         assert len(res) == 0
 
     def test_search_on_empty_database(self, curl_prep, setup_server):
-        res = run_curl("--user test:test -d 'data=bad_search' -X GET")
+        row = make_sample_row()
+        row["data"] = "bad_search"
+        curl_string = make_curl_string(row)
+        
+        res = run_curl(f"--user test:test {curl_string} -X GET")
 
         assert isinstance(res, list)
         assert len(res) == 0
 
     def test_simple_write(self, curl_prep, setup_server):
         #example: [{'data': 'new_data', '_user': 'test', '_timestamp': '2022-04-05T01:50:57.528273'}]
-        res = run_curl("--user test:test -d 'data=new_data' -X POST")
+
+        row = make_sample_row()
+        row["data"] = "new_data"
+        curl_string = make_curl_string(row)
+        
+        res = run_curl(f"--user test:test {curl_string} -X POST")
 
         assert isinstance(res, list)
         assert len(res) == 1
@@ -195,7 +215,11 @@ class Test_integration:
         assert "test" in res[0]["_user"]
 
     def test_write_and_read(self, curl_prep, setup_server):
-        res1 = run_curl("--user test:test -d 'data=new_data' -X POST")
+        row = make_sample_row()
+        row["data"] = "new_data"
+        curl_string = make_curl_string(row)
+        
+        res1 = run_curl(f"--user test:test {curl_string} -X POST")
 
         res2 = run_curl("--user test:test -X GET")
 
@@ -208,7 +232,11 @@ class Test_integration:
         assert "new_data" in res2[0]["data"]
 
     def test_write_and_search(self, curl_prep, setup_server):
-        res1 = run_curl("--user test:test -d 'data=new_data' -X POST")
+        row = make_sample_row()
+        row["data"] = "new_data"
+        curl_string = make_curl_string(row)
+        
+        res1 = run_curl(f"--user test:test {curl_string} -X POST")
 
         res2 = run_curl("--user test:test -d 'data=new_data' -X GET")
 
@@ -221,7 +249,11 @@ class Test_integration:
         assert "new_data" in res2[0]["data"]
 
     def test_write_and_bad_search(self, curl_prep, setup_server):
-        res1 = run_curl("--user test:test -d 'data=new_data' -X POST")
+        row = make_sample_row()
+        row["data"] = "new_data"
+        curl_string = make_curl_string(row)
+        
+        res1 = run_curl(f"--user test:test {curl_string} -X POST")
 
         res2 = run_curl("--user test:test -d 'data=some_fake_data' -X GET")
 
@@ -236,8 +268,12 @@ class Test_integration:
         assert "method is not allowed" in list( res1.values() )[0]
 
     def test_duplicate_data(self, curl_prep, setup_server):
-        run_curl("--user test:test -d 'data=new_data' -X POST")
-        run_curl("--user test:test -d 'data=new_data' -X POST")
+        row = make_sample_row()
+        row["data"] = "new_data"
+        curl_string = make_curl_string(row)
+        
+        run_curl(f"--user test:test {curl_string} -X POST")
+        run_curl(f"--user test:test {curl_string} -X POST")
 
         res1 = run_curl("--user test:test -X GET")
 
@@ -248,9 +284,14 @@ class Test_integration:
     #but the current setup doesn't allow us to read such an error
     #need better error reporting from the server in future
     def test_binary_data(self, curl_prep, setup_server):
+        row = make_sample_row()
+        curl_string = make_curl_string(row)
+
         from pathlib import Path
         pic_path = Path("./data/61bVaOK46tL._AC_SL1000_.jpg")
-        cmd = f"--user test:test --data-binary '@{pic_path.resolve()}' -X POST"
+        cmd = f"--user test:test {curl_string} \
+            --data-binary '@{pic_path.resolve()}' -X POST"
+
         res = run_curl(cmd)
 
         assert True #TODO

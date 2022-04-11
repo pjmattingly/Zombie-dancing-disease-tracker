@@ -1,10 +1,13 @@
+'''
+TODO
+The validation portion of this module should be handled by Marshmallow
+but our needs are so simple at this time, that these simple functions should
+suffice.
+    see:
+    https://marshmallow.readthedocs.io/en/stable/quickstart.html
+'''
 #see: https://stackoverflow.com/questions/1319615/proper-way-to-declare-custom-exceptions-in-modern-python
 class Malformed_Input(Exception): pass
-'''
-def __init__(self):
-    m = 'Malformed input. Input should be of the form: -d "key=value"'
-    super().__init__(m)
-'''
 
 def validate(row):
     vns = Validation_and_Standardization()
@@ -17,7 +20,11 @@ def standardize(row):
 class Validation_and_Standardization:
     def __init__(self):
         self._checks = [self._zero_length_check, self._required_keys_check]
-        self._mods = [self._date_time_check, self._notes_check]
+        self._mods = [
+            self._date_time_check,
+            self._notes_check,
+            self._add_timestamp
+        ]
 
         self._required_keys = ["doctor", "patient", "event_type", "location"]
 
@@ -25,7 +32,7 @@ class Validation_and_Standardization:
         "_zero_length_check":"All keys and values should have non-zero length.",
         "_required_keys_check":
         f"The following keys are required for each event: {self._required_keys}",
-
+        "_private_keys_check" : f"Keys should not being with underscore: '_' ",
         }
 
     def validate(self, row):
@@ -67,6 +74,12 @@ class Validation_and_Standardization:
 
         return row
 
+    def _private_keys_check(self, row):
+        _msg = self._error_msgs["_private_keys_check"]
+         
+        if any( [str(k).startswith("_") for k in row.keys()] ):
+            raise Malformed_Input(_msg)
+
     def _date_time_check(self, row):
         #TODO, we should check if date_time is valid here, but this is very complex
         if (not "date_time" in list(row)):
@@ -83,3 +96,9 @@ class Validation_and_Standardization:
             _row["notes"] = None
             return _row
         return row
+
+    def _add_timestamp(self, row):
+        _row = dict(row)
+        from datetime import datetime
+        _row["_timestamp"] = datetime.now(tz=None)
+        return _row

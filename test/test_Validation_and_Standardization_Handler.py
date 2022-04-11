@@ -1,12 +1,12 @@
 import pytest
-import src.Validation_Handler
+import src.Validation_and_Standardization_Handler
 
 test_v = None
 
 @pytest.fixture
 def init():
     global test_v
-    test_v = src.Validation_Handler.Validation_and_Standardization()
+    test_v = src.Validation_and_Standardization_Handler.Validation_and_Standardization()
 
     yield
 
@@ -17,7 +17,7 @@ class Test_zero_length_check:
     def test1(self, init):
         sample_row = {"data": ""}
 
-        from src.Validation_Handler import Malformed_Input
+        from src.Validation_and_Standardization_Handler import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_v._zero_length_check( sample_row )
 
@@ -26,7 +26,7 @@ class Test_zero_length_check:
     def test2(self, init):
         sample_row = {"": "some value"}
 
-        from src.Validation_Handler import Malformed_Input
+        from src.Validation_and_Standardization_Handler import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_v._zero_length_check( sample_row )
 
@@ -35,7 +35,7 @@ class Test_zero_length_check:
     def test3(self, init):
         sample_row = {"": ""}
 
-        from src.Validation_Handler import Malformed_Input
+        from src.Validation_and_Standardization_Handler import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_v._zero_length_check( sample_row )
 
@@ -45,7 +45,7 @@ class Test_required_keys_check:
     def test1(self, init):
         sample_row = {"some bad key": "some bad value"}
 
-        from src.Validation_Handler import Malformed_Input
+        from src.Validation_and_Standardization_Handler import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_v._required_keys_check( sample_row )
 
@@ -56,7 +56,7 @@ class Test_required_keys_check:
         import random
         sample_row = {str(random.choice( test_v._required_keys )):"some value" for i in range(3)}
 
-        from src.Validation_Handler import Malformed_Input
+        from src.Validation_and_Standardization_Handler import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_v._required_keys_check( sample_row )
 
@@ -66,6 +66,23 @@ class Test_required_keys_check:
         sample_row = {str(k):"some value" for k in test_v._required_keys}
 
         test_v._required_keys_check( sample_row )
+
+        assert True
+
+class Test_private_keys_check:
+    def test1(self, init):
+        sample_row = {"_some bad key": "some bad value"}
+
+        from src.Validation_and_Standardization_Handler import Malformed_Input
+        with pytest.raises(Malformed_Input) as excinfo:
+            test_v._private_keys_check( sample_row )
+
+        assert test_v._error_msgs["_private_keys_check"] in str(excinfo.value)
+
+    def test2(self, init):
+        sample_row = {"some key": "some value"}
+
+        test_v._private_keys_check( sample_row )
 
         assert True
 
@@ -99,11 +116,19 @@ class Test_notes_check:
 
         assert "some value" in list( res.values() )
 
+class Test_add_timestamp:
+    def test1(self, init):
+        sample_row = {"some key": "some value"}
+
+        res = test_v._add_timestamp(sample_row)
+
+        assert "_timestamp" in list( res.keys() )
+
 class Test_validate1:
     def test1(self, init):
         sample_row = {"data": ""}
 
-        from src.Validation_Handler import Malformed_Input
+        from src.Validation_and_Standardization_Handler import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_v.validate( sample_row )
 
@@ -112,7 +137,7 @@ class Test_validate1:
     def test2(self, init):
         sample_row = {"some bad key": "some bad value"}
 
-        from src.Validation_Handler import Malformed_Input
+        from src.Validation_and_Standardization_Handler import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
             test_v.validate( sample_row )
 
@@ -127,7 +152,7 @@ class Test_validate1:
 
 class Test_validate2:
     def test1(self, init):
-        from src.Validation_Handler import validate
+        from src.Validation_and_Standardization_Handler import validate
 
         sample_row = {str(k):"some value" for k in test_v._required_keys}
 
@@ -146,7 +171,7 @@ class Test_standardize1:
 
 class Test_standardize2:
     def test1(self, init):
-        from src.Validation_Handler import standardize
+        from src.Validation_and_Standardization_Handler import standardize
 
         sample_row = {str(k):"some value" for k in test_v._required_keys}
 

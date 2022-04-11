@@ -14,6 +14,12 @@ def setup_database(tmp_path):
 
     test_db = None
 
+def make_sample_row():
+    import src.Validation_and_Standardization_Handler as vns1
+    vns2 = vns1.Validation_and_Standardization()
+
+    return {str(k):"some value" for k in vns2._required_keys}
+
 class Test__init__:
     def test1(self, setup_database):
         try:
@@ -90,7 +96,8 @@ class Test_append:
 
         assert len(res) == 0
 
-        sample_row = {"data": "some stored data"}
+        sample_row = make_sample_row()
+        sample_row["data"] = "some stored data"
         res = test_db.append( sample_row )
 
         assert len(res) == 1
@@ -98,14 +105,18 @@ class Test_append:
         assert res[0]["data"] == "some stored data"
 
     def test2(self, setup_database):
-        sample_row = {"data": "some stored data 1"}
-        res = test_db.append( sample_row )
+        sample_row1 = make_sample_row()
+        sample_row1["data"] = "some stored data 1"
+
+        #sample_row = {"data": "some stored data 1"}
+        res = test_db.append( sample_row1 )
 
         import time
         time.sleep(.1) #add a small delay to make sure timestamps are unique
 
-        sample_row = {"data": "some stored data 2"}
-        res = test_db.append( sample_row )
+        sample_row2 = make_sample_row()
+        sample_row1["data"] = "some stored data 2"
+        res = test_db.append( sample_row2 )
 
         assert all( ["_timestamp" in row for row in res] )
 
@@ -114,11 +125,12 @@ class Test_append:
         assert len(set_timestamps) == 2 #all unique timestamps
 
     def test3(self, setup_database):
-        sample_row = {"data": ""}
+        sample_row = make_sample_row()
+        sample_row["data"] = ""
 
-        from src.Database import Malformed_Input
+        from src.Validation_and_Standardization_Handler import Malformed_Input
         with pytest.raises(Malformed_Input) as excinfo:
-            test_db.append( sample_row )
+            test_db.append( sample_row )    
 
 class Test_escape_input:
     def test1(self, setup_database):
@@ -161,7 +173,9 @@ class Test_search:
         assert len(res) == 0
 
     def test3(self, setup_database):
-        sample_row = {"data": "some stored data"}
+        sample_row = make_sample_row()
+        sample_row["data"] = "some stored data"
+
         test_db.append( sample_row )
 
         res = test_db.search({"data": "some bad data"})
@@ -169,7 +183,9 @@ class Test_search:
         assert len(res) == 0
 
     def test4(self, setup_database):
-        sample_row = {"data": "some stored data"}
+        sample_row = make_sample_row()
+        sample_row["data"] = "some stored data"
+
         test_db.append( sample_row )
 
         res = test_db.search({"some bad key": "some stored data"})
@@ -177,7 +193,9 @@ class Test_search:
         assert len(res) == 0
 
     def test5(self, setup_database):
-        sample_row = {"data": "some stored data"}
+        sample_row = make_sample_row()
+        sample_row["data"] = "some stored data"
+
         test_db.append( sample_row )
 
         res = test_db.search({"data": "some stored data"})
@@ -187,7 +205,9 @@ class Test_search:
         assert res[0]["data"] == "some stored data"
 
     def test6(self, setup_database):
-        sample_row = {"data": "some stored data"}
+        sample_row = make_sample_row()
+        sample_row["data"] = "some stored data"
+
         test_db.append( sample_row )
 
         res = test_db.search({"data": ""})
@@ -195,7 +215,9 @@ class Test_search:
         assert len(res) == 0
 
     def test7(self, setup_database):
-        sample_row = {"data": "some stored data"}
+        sample_row = make_sample_row()
+        sample_row["data"] = "some stored data"
+
         test_db.append( sample_row )
 
         res = test_db.search({"": "some stored data"})
@@ -203,7 +225,9 @@ class Test_search:
         assert len(res) == 0
 
     def test8(self, setup_database):
-        sample_row = {"data": "some stored data"}
+        sample_row = make_sample_row()
+        sample_row["data"] = "some stored data"
+
         test_db.append( sample_row )
 
         res = test_db.search({"": ""})
@@ -264,21 +288,27 @@ class Test__repr__:
         assert len(res) == 0
 
     def test2(self, setup_database):
-        sample_row = {"data": "some stored data 1"}
-        res = test_db.append( sample_row )
+        sample_row1 = make_sample_row()
+        sample_row1["data"] = "some stored data1"
+
+        res = test_db.append( sample_row1 )
 
         import time
         time.sleep(.1) #add a small delay to make sure timestamps are unique
 
-        sample_row = {"data": "some stored data 2"}
-        res = test_db.append( sample_row )
+        sample_row2 = make_sample_row()
+        sample_row2["data"] = "some stored data2"
+
+        res = test_db.append( sample_row2 )
 
         assert res[0]["_timestamp"] < res[1]["_timestamp"]
 
 class Test_to_JSON_safe:
     def test1(self, setup_database):
-        sample_row = {"data": "some stored data 1"}
-        res1 = test_db.append( sample_row )
+        sample_row1 = make_sample_row()
+        sample_row1["data"] = "some stored data1"
+
+        res1 = test_db.append( sample_row1 )
 
         res2 = test_db.__repr__()
 
@@ -293,3 +323,27 @@ class Test_to_JSON_safe:
         json.dumps(res3)
 
         assert True
+
+    def test2(self, setup_database):
+        sample_row1 = make_sample_row()
+        sample_row1["data"] = "some stored data1"
+        sample_row1["date_time"] = "last Friday"
+
+        res1 = test_db.append( sample_row1 )
+
+        res2 = test_db.__repr__()
+
+        with pytest.raises(TypeError) as excinfo:
+            import json
+            json.dumps(res2)
+
+        from src.Database import to_JSON_safe
+        res3 = to_JSON_safe(res2)
+
+        import json
+        json.dumps(res3)
+
+        assert True
+
+        assert "date_time" in list( res3[0].keys() )
+        assert res3[0]["date_time"] == "last Friday"
