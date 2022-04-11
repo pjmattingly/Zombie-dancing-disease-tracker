@@ -175,6 +175,7 @@ class Main(Resource):
 
         _input["_user"] = request.authorization['username']
 
+        from . import Validation_and_Standardization_Handler as vns
         try:
             res = _db.append( _input )
         except OSError as e:
@@ -184,6 +185,8 @@ class Main(Resource):
                 raise InsufficientStorage(m)
             else:
                 raise #raise other OSError
+        except vns.Malformed_Input as e:
+            abort(400, str(e))
 
         from .Database import to_JSON_safe
         return to_JSON_safe( _db.__repr__() )
