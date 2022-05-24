@@ -1,3 +1,5 @@
+(An example audit log service used to demonstrate Python proficiency for a job application. )
+
 # Zombie dancing disease tracker
  An audit log service (Service) for tracking medical information related to the widespread Zombie dancing disease.
 
